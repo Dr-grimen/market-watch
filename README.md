@@ -21,9 +21,10 @@ Prisar (CNBC)        ─┐
    Mistenkeleg innhald → ingen melding. Allereie varsla → ingen melding.
 5. **Sender** melding på Telegram berre når alle portane er passert.
 
-Køyrer **kvart 20. minutt** gjennom heile den amerikanske handelsdagen, og kvar
-time om morgonen. Mellom 14:00 og 15:30 norsk tid skiftar verktøyet automatisk
-til *før-opning-modus* og spør spesifikt: **tyder noko på at børsen opnar opp?**
+Køyrer **kvart 20. minutt** frå morgonen til natta, alle kvardagar. Er det helg
+eller mellom 01 og 07, avsluttar det med ein gong utan å bruke ei krone.
+Mellom 14:00 og 15:30 norsk tid skiftar verktøyet automatisk til
+*før-opning-modus* og spør spesifikt: **tyder noko på at børsen opnar opp?**
 
 To detaljar som gjer at det faktisk fungerer:
 
@@ -35,44 +36,55 @@ To detaljar som gjer at det faktisk fungerer:
 
 ---
 
-## Det du må gjere sjølv
+## Kom i gang — éin kommando
 
-Eg kan ikkje opprette kontoar eller handtere betalingskort for deg. Desse stega
-må du ta sjølv:
+```bash
+cd ~/market-watch && ./oppsett.sh
+```
 
-- [ ] **GitHub-konto** — https://github.com (gratis). Trengst for at verktøyet skal køyre døgnet rundt.
-- [ ] **Anthropic API-nøkkel** — https://console.anthropic.com → Settings → API Keys.
-      Du må leggje inn eit kredittkort og fylle på litt saldo (5 USD held lenge).
-- [ ] **Telegram-bot** (gratis):
-      1. Opne Telegram og søk opp **@BotFather**.
-      2. Send `/newbot`, vel eit namn. Du får eit **token** — det er `TELEGRAM_BOT_TOKEN`.
-      3. Søk opp din nye bot og send han ei melding (kva som helst, t.d. `hei`).
-      4. Opne `https://api.telegram.org/bot<TOKEN>/getUpdates` i nettlesaren.
-         Talet under `"chat":{"id": ...}` er `TELEGRAM_CHAT_ID`.
+Skriptet gjer alt som kan gjerast automatisk: lagar Python-miljøet, lagar `.env`,
+testar Telegram, og set opp automatisk køyring kvart 20. minutt på denne Macen.
 
-Telefonnummeret ditt trengst ikkje — Telegram sender til bot-samtalen, ikkje til
-eit nummer. (Skulle du seinare byte tilbake til SMS, treng du i tillegg ein
-Twilio-konto frå https://twilio.com/try-twilio.)
+Manglar det ein nøkkel, **stoppar det og skriv ut ei steg-for-steg-oppskrift**
+med nøyaktig kva du skal trykke på. Fyll inn, køyr på nytt, ferdig.
 
-Ikkje lim nøklane inn i ei chat eller inn i koden. Dei skal berre to stader:
-`.env` lokalt (som er i `.gitignore`) og GitHub Secrets.
+Du treng ingen GitHub-konto for dette.
+
+### Dei to nøklane du må hente sjølv
+
+Eg kan ikkje hente desse for deg — dei krev di innlogging og ditt kort.
+
+**Telegram (gratis, ~3 min).** Søk opp **@BotFather** i Telegram → `/newbot` →
+vel namn og eit brukarnamn som sluttar på `bot`. Du får eit token som ser slik ut:
+`8123456789:AAF2h-...`. Søk så opp *ditt eige* bot, trykk START og send `hei`
+— utan det får ikkje botet lov å sende til deg. Opne til slutt
+`https://api.telegram.org/bot<TOKEN>/getUpdates`; talet i `"chat":{"id":...}`
+er din chat-ID.
+
+**Anthropic (~3 min).** https://console.anthropic.com → Billing → legg inn kort
+og fyll på 5 USD (held i mange månader) → Settings → API Keys → Create Key.
+Nøkkelen startar med `sk-ant-` og blir **berre vist éin gong**.
+
+Begge limer du inn i `.env`:
+
+```bash
+open -e ~/market-watch/.env
+```
+
+Ikkje lim nøklane inn i ein chat eller i koden. Dei skal berre i `.env`, som er
+i `.gitignore` og aldri følgjer med til GitHub.
 
 ---
 
-## Test lokalt først
+## Køyre og teste manuelt
 
-```bash
-cd ~/market-watch && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
-```
-
-Kopier `.env.example` til `.env` og lim inn nøklane dine. Sjekk så oppsettet:
+Sjekk oppsettet — den seier rett ut kva som manglar og testar at kjeldene svarer:
 
 ```bash
 cd ~/market-watch && .venv/bin/python -m src.main --doctor
 ```
 
-Den seier rett ut kva som manglar, og testar samtidig at pris- og
-nyheitskjeldene svarer. Når han er grøn, test at Telegram verkar:
+Når han er grøn, test at Telegram verkar:
 
 ```bash
 cd ~/market-watch && .venv/bin/python -m src.main --test-notify
@@ -96,29 +108,6 @@ cd ~/market-watch && .venv/bin/python -m src.main --mode preopen --dry-run
 ```
 
 ---
-
-## Sett det i skya
-
-```bash
-cd ~/market-watch && git init && git add -A && git commit -m "market-watch"
-```
-
-Lag eit **privat** repo på GitHub og push. Så, i repoet:
-
-**Settings → Secrets and variables → Actions → New repository secret** — legg inn:
-
-| Secret | Verdi |
-|---|---|
-| `ANTHROPIC_API_KEY` | frå console.anthropic.com |
-| `TELEGRAM_BOT_TOKEN` | frå @BotFather |
-| `TELEGRAM_CHAT_ID` | frå `getUpdates` |
-
-Telegram er standard, så du treng ikkje setje noko under **Variables**. Vil du
-seinare over på SMS, set `NOTIFIER` til `twilio_sms` der og legg inn dei fire
-`TWILIO_*`/`ALERT_PHONE_NUMBER`-secrets.
-
-Så: **Actions**-fana → `market-watch` → **Run workflow** for å teste manuelt
-(`dry_run` står på `true` som standard).
 
 ---
 
@@ -160,7 +149,7 @@ Alt står i `config.yaml`:
 
 | Post | Per månad |
 |---|---|
-| GitHub Actions | 0 kr — men sjå åtvaringa under |
+| Køyring på Macen din | 0 kr |
 | Datakjelder | 0 kr (alt er opne feeds, ingen nøklar) |
 | Telegram | 0 kr |
 | Claude Haiku | ~15–30 kr |
@@ -169,22 +158,46 @@ Alt står i `config.yaml`:
 Claude-kallet er heile kostnaden: ca. **0,03 kr per køyring**, og berre når
 regelfilteret faktisk fann noko nytt. Vil du ned, senk `max_items_to_llm`.
 
-### Åtvaring om GitHub-kvoten
-
-Kvart 20. minutt blir ca. **836 køyringar i månaden**, ≈ 1670 av dei
-2000 gratisminutta eit **privat** repo har. Det går, men marginen er tynn —
-og går du tom, stoppar verktøyet stille midt i månaden.
-
-To utvegar:
-
-- **Gjer repoet offentleg** → ubegrensa Actions-minutt. Trygt her: nøklane ligg
-  i GitHub Secrets, ikkje i koden, og `.env` er i `.gitignore`. Det einaste
-  utanforståande ser er kjeldelista di.
-- **Eller behald det privat** og endre cron til `*/30` i
-  `.github/workflows/watch.yml`. Då bruker du ~1100 minutt.
-
 Byter du til SMS seinare kjem ~15 kr/mnd for Twilio-nummeret pluss
 ~0,70 kr per melding oppå.
+
+---
+
+## Viss Macen er av (valfritt)
+
+launchd køyrer berre når maskina er på og vaken. Er ho av eller i dvale, hoppar
+køyringar over — det spelar sjeldan noka rolle, for verktøyet ser same nyheita
+neste gong. Men skal det gå heilt uavhengig av deg, kan det køyre på GitHub
+Actions i staden. Det krev GitHub-konto, repo og at du legg inn dei same tre
+nøklane der.
+
+<details>
+<summary>Slik gjer du det</summary>
+
+```bash
+cd ~/market-watch && ./setup-github.sh <ditt-github-brukarnamn> market-watch
+```
+
+Lag eit **tomt** repo på github.com/new først. Skriptet sjekkar at ingen nøklar
+er på veg med, commitar og pushar. Legg deretter inn under
+**Settings → Secrets and variables → Actions → New repository secret**:
+
+| Secret | Verdi |
+|---|---|
+| `ANTHROPIC_API_KEY` | frå console.anthropic.com |
+| `TELEGRAM_BOT_TOKEN` | frå @BotFather |
+| `TELEGRAM_CHAT_ID` | frå `getUpdates` |
+
+**Ei åtvaring om kvoten:** kvart 20. minutt blir ca. **836 køyringar i månaden**,
+≈ 1670 av dei 2000 gratisminutta eit **privat** repo har. Marginen er tynn, og
+går du tom stoppar verktøyet stille midt i månaden. Anten gjer du repoet
+offentleg (ubegrensa minutt — nøklane ligg i Secrets, ikkje i koden), eller du
+endrar cron til `*/30` i `.github/workflows/watch.yml`.
+
+Køyrer du begge stader samtidig, får du dobbelt opp med meldingar. Skru av
+Mac-varianten med `launchctl bootout gui/$(id -u)/no.sondre.market-watch`.
+
+</details>
 
 ---
 

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>no.sondre.market-watch</string>
+
+    <!-- Køyrer verktøyet. Python sjekkar sjølv klokka og avsluttar
+         med ein gong dersom det er natt eller helg. -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>__PROJECT__/.venv/bin/python</string>
+        <string>-m</string>
+        <string>src.main</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>__PROJECT__</string>
+
+    <!-- Kvart 20. minutt. -->
+    <key>StartInterval</key>
+    <integer>1200</integer>
+
+    <!-- Ikkje køyr med ein gong den blir lasta - vent til første intervall. -->
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>__PROJECT__/logs/market-watch.log</string>
+    <key>StandardErrorPath</key>
+    <string>__PROJECT__/logs/market-watch.err</string>
+</dict>
+</plist>
