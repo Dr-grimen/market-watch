@@ -100,17 +100,18 @@ if [ -n "$MISSING" ]; then
 
       DET er TELEGRAM_BOT_TOKEN. Kopier heile linja.
 
-   7. I same Telegram: søk opp botet DITT (brukarnamnet frå steg 5),
+   7. Lim tokenet inn i .env med ein gong (sjå C nedanfor),
+      bak  TELEGRAM_BOT_TOKEN=
+
+   8. I same Telegram: søk opp botet DITT (brukarnamnet frå steg 5),
       trykk START og send han ordet:  hei
       (Dette må du gjere, elles får ikkje botet lov å sende til deg.)
 
-   8. Opne denne adressa i nettlesaren, med ditt token limt inn
-      der det står <TOKEN>:
+   9. Køyr så dette, så finn eg chat-ID-en for deg:
 
-         https://api.telegram.org/bot<TOKEN>/getUpdates
+         cd "$PROJECT" && ./hent-chatid.sh
 
-      Du får ein tekst med:  "chat":{"id":123456789,
-      Talet der er TELEGRAM_CHAT_ID.
+      Den skriv ut talet du skal ha bak  TELEGRAM_CHAT_ID=
 
   === B. ANTHROPIC (Claude) ===
 

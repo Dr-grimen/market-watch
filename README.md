@@ -56,10 +56,14 @@ Eg kan ikkje hente desse for deg — dei krev di innlogging og ditt kort.
 
 **Telegram (gratis, ~3 min).** Søk opp **@BotFather** i Telegram → `/newbot` →
 vel namn og eit brukarnamn som sluttar på `bot`. Du får eit token som ser slik ut:
-`8123456789:AAF2h-...`. Søk så opp *ditt eige* bot, trykk START og send `hei`
-— utan det får ikkje botet lov å sende til deg. Opne til slutt
-`https://api.telegram.org/bot<TOKEN>/getUpdates`; talet i `"chat":{"id":...}`
-er din chat-ID.
+`8123456789:AAF2h-...`. Lim det inn i `.env`. Søk så opp *ditt eige* bot, trykk
+START og send `hei` — utan det får ikkje botet lov å sende til deg. Køyr til slutt:
+
+```bash
+cd ~/market-watch && ./hent-chatid.sh
+```
+
+Den les tokenet frå `.env`, spør Telegram, og skriv ut chat-ID-en din.
 
 **Anthropic (~3 min).** https://console.anthropic.com → Billing → legg inn kort
 og fyll på 5 USD (held i mange månader) → Settings → API Keys → Create Key.
