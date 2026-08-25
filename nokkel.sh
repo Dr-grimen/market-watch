@@ -3,7 +3,9 @@
 # Opnar eit vindauge der du kan skrive eller lime inn ein nøkkel.
 # Nøkkelen går rett i .env. Han blir aldri vist i terminalen.
 #
-# Bruk:  ./nokkel.sh
+# Bruk:
+#   ./nokkel.sh                      spør om dei som manglar
+#   ./nokkel.sh ANTHROPIC_API_KEY    byt ut ein som alt står der
 
 set -uo pipefail
 
@@ -11,6 +13,30 @@ PROJECT="$(cd "$(dirname "$0")" && pwd)"
 cd "$PROJECT"
 
 [ -f ".env" ] || cp .env.example .env
+
+# Skal eit felt bytast, tømmer vi det først. Då finn løkka under det
+# som "manglande" og spør om det på vanleg vis.
+BYT="${1:-}"
+if [ -n "$BYT" ]; then
+  case "$BYT" in
+    ANTHROPIC_API_KEY|TELEGRAM_BOT_TOKEN|TELEGRAM_CHAT_ID) ;;
+    *)
+      echo "  Ukjent felt: $BYT"
+      echo "  Vel eitt av: ANTHROPIC_API_KEY TELEGRAM_BOT_TOKEN TELEGRAM_CHAT_ID"
+      exit 1
+      ;;
+  esac
+  FELT="$BYT" python3 -c '
+import os
+felt = os.environ["FELT"]
+linjer = open(".env").read().split("\n")
+for i, l in enumerate(linjer):
+    if not l.lstrip().startswith("#") and l.split("=")[0].strip() == felt:
+        linjer[i] = felt + "="
+open(".env", "w").write("\n".join(linjer))
+print("  Tømde %s - spør om ein ny." % felt)
+'
+fi
 
 status_linjer() {
   awk -F= '

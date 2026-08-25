@@ -115,6 +115,34 @@ cd ~/market-watch && .venv/bin/python -m src.main --mode preopen --dry-run
 
 ---
 
+## Om ein nøkkel kjem på avvegar
+
+Har eit token eller ein nøkkel vore synleg ein stad han ikkje skulle — i ein chat,
+eit skjermbilete, ein e-post — byter du han slik:
+
+**Telegram-tokenet.** I BotFather: `/revoke` → trykk botet ditt. Du får eit nytt
+med ein gong, og det gamle sluttar å verke same sekund. Så:
+
+```bash
+cd ~/market-watch && ./nokkel.sh TELEGRAM_BOT_TOKEN
+```
+
+Eit vindauge kjem opp. Skriv eller lim inn det nye. Verdien går rett i `.env`
+og blir aldri vist i terminalen.
+
+**Anthropic-nøkkelen.** På https://console.anthropic.com/settings/keys: slett den
+gamle, trykk **Create Key**, kopier. Så:
+
+```bash
+cd ~/market-watch && ./nokkel.sh ANTHROPIC_API_KEY
+```
+
+Grunnen til at dette er verdt bryet med Telegram-tokenet: med det kan kven som
+helst sende meldingar *som* botet ditt. Altså ei falsk melding om at Nasdaq skal
+opp. For eit verktøy du tek pengeavgjerder på, er det den eine feilen som betyr noko.
+
+---
+
 ## Korleis du veit at det framleis lever
 
 Dette er verdt å tenkje på: **stille er den normale utgangen** frå verktøyet.
