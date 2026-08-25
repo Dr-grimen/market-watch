@@ -1,0 +1,70 @@
+name: market-watch
+
+on:
+  schedule:
+    # MERK: GitHub Actions køyrer alltid i UTC. Noreg er UTC+1 (vinter) / UTC+2 (sommar).
+    # Koden les sjølv av lokal tid og avgjer modus, så drifta over sommartid
+    # gjer ingenting - køyringar utanfor aktiv tid avsluttar seg sjølve.
+
+    # Kjernetid: kvart 20. minutt. 11-21 UTC = 13-23 norsk tid om sommaren,
+    # 12-22 om vinteren. Dekkjer før-opning, heile den amerikanske
+    # handelsdagen og stenginga.
+    - cron: "*/20 11-21 * * 1-5"
+
+    # Morgon: kvar time. Her skjer det sjeldan noko som hastar, men
+    # europeiske og asiatiske nyheiter kan setje tonen for dagen.
+    - cron: "0 6-10 * * 1-5"
+
+  # Køyr manuelt frå Actions-fana for å teste.
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Ikkje send melding, berre vis kva som ville blitt sendt"
+        type: boolean
+        default: true
+
+concurrency:
+  group: market-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Installer avhengigheiter
+        run: pip install -r requirements.txt
+
+      # Hugsar kva som allereie er varsla om, så du ikkje får dobbelt opp.
+      - name: Hent tidlegare tilstand
+        uses: actions/cache@v4
+        with:
+          path: state.json
+          key: market-watch-state-${{ github.run_id }}
+          restore-keys: |
+            market-watch-state-
+
+      - name: Køyr overvakinga
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          NOTIFIER: ${{ vars.NOTIFIER || 'telegram' }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_FROM_NUMBER: ${{ secrets.TWILIO_FROM_NUMBER }}
+          ALERT_PHONE_NUMBER: ${{ secrets.ALERT_PHONE_NUMBER }}
+        run: |
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            python -m src.main --dry-run
+          else
+            python -m src.main
+          fi

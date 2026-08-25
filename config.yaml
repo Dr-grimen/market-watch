@@ -1,0 +1,247 @@
+# Innstillingar for market-watch.
+# Endre her - ikkje i koden.
+
+timezone: Europe/Oslo
+
+# Kor sikker Claude må vere før du får melding (0.0 - 1.0).
+# Høgare tal = færre meldingar, men sikrare. 0.75 er eit strengt utgangspunkt.
+confidence_threshold: 0.75
+
+# Minste tal minutt mellom to varsel om same aktivum og same retning.
+# Hindrar at same nyheit gir deg fem SMS.
+cooldown_minutes: 180
+
+# Maks tal varsel per døgn, uansett. Sikring mot at rekninga eksploderer.
+max_alerts_per_day: 6
+
+# Maks tal nyheitssaker som blir sendt til Claude i éin køyring.
+# Kvar sak kostar pengar, så dette er kostnadstaket ditt.
+max_items_to_llm: 12
+
+# --- Helseovervaking ---
+# Stille er den normale utgangen frå dette verktøyet. Difor ser eit
+# knekt verktøy nøyaktig ut som ein roleg marknad. Desse to
+# innstillingane er den einaste måten du får vite forskjellen.
+
+# Tal feil på rad før du får éi melding om at verktøyet er nede.
+# 5 feil = ca. 100 minutt nede før du blir plaga.
+failure_alert_after: 5
+
+# Eit livsteikn i veka, så du veit at stille faktisk tyder stille.
+# weekday: 0=måndag ... 4=fredag. hour er lokal tid.
+heartbeat_enabled: true
+heartbeat_weekday: 4
+heartbeat_hour: 17
+
+# Symbola er CNBC-kodar (hovudkjelda). yahoo_fallback er reservekodar
+# som blir brukte berre dersom CNBC ikkje svarer.
+assets:
+  nasdaq:
+    label: Nasdaq
+    tickers:
+      - ".IXIC"   # Nasdaq Composite
+      - ".NDX"    # Nasdaq 100
+      - "@ND.1"   # Nasdaq 100 futures - handlast også når børsen er stengd
+    yahoo_fallback:
+      ".IXIC": "^IXIC"
+      ".NDX": "^NDX"
+      "@ND.1": "NQ=F"
+  oil:
+    label: Olje
+    tickers:
+      - "@CL.1"   # WTI råolje
+      - "@LCO.1"  # Brent råolje
+    yahoo_fallback:
+      "@CL.1": "CL=F"
+      "@LCO.1": "BZ=F"
+
+# Prisrørsle i prosent som i seg sjølv gjer ei sak interessant.
+price_move_threshold_pct: 0.8
+
+# Maks alder på ei sak før ho blir ignorert.
+max_news_age_hours: 12
+
+# RSS-kjelder. Alle er gratis, krev ingen API-nøkkel, og alle er testa
+# og verifiserte som levande 25.08.2026. Blir henta parallelt.
+feeds:
+  # --- Byrå og store internasjonale ---
+  - name: Reuters
+    url: https://news.google.com/rss/search?q=when:6h+site:reuters.com+markets+OR+energy+OR+economy&hl=en-US&gl=US&ceid=US:en
+  - name: Bloomberg
+    url: https://news.google.com/rss/search?q=when:6h+site:bloomberg.com&hl=en-US&gl=US&ceid=US:en
+  - name: AP Top News
+    url: https://feedx.net/rss/ap.xml
+  - name: BBC Business
+    url: https://feeds.bbci.co.uk/news/business/rss.xml
+  - name: BBC World
+    url: https://feeds.bbci.co.uk/news/world/rss.xml
+  - name: Al Jazeera
+    url: https://www.aljazeera.com/xml/rss/all.xml
+  - name: Financial Times
+    url: https://www.ft.com/rss/home
+  - name: Guardian Business
+    url: https://www.theguardian.com/uk/business/rss
+  - name: NYT Business
+    url: https://rss.nytimes.com/services/xml/rss/nyt/Business.xml
+  - name: NYT Economy
+    url: https://rss.nytimes.com/services/xml/rss/nyt/Economy.xml
+  - name: WSJ Markets
+    url: https://feeds.content.dowjones.io/public/rss/RSSMarketsMain
+  - name: WSJ World
+    url: https://feeds.content.dowjones.io/public/rss/RSSWorldNews
+
+  # --- Finans og marknad ---
+  - name: CNBC Top
+    url: https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100003114
+  - name: CNBC Markets
+    url: https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=20910258
+  - name: CNBC Finance
+    url: https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664
+  - name: CNBC Earnings
+    url: https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=15839135
+  - name: CNBC Tech
+    url: https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=19854910
+  - name: MarketWatch Top
+    url: https://feeds.content.dowjones.io/public/rss/mw_topstories
+  - name: MarketWatch Realtime
+    url: https://feeds.content.dowjones.io/public/rss/mw_realtimeheadlines
+  - name: MarketWatch Pulse
+    url: https://feeds.content.dowjones.io/public/rss/mw_marketpulse
+  - name: Yahoo Finance
+    url: https://finance.yahoo.com/news/rssindex
+  - name: Investing.com
+    url: https://www.investing.com/rss/news.rss
+  - name: Investing Stocks
+    url: https://www.investing.com/rss/news_25.rss
+  - name: Investing Commodities
+    url: https://www.investing.com/rss/news_11.rss
+  - name: Nasdaq.com
+    url: https://www.nasdaq.com/feed/rssoutbound?category=Markets
+  - name: Seeking Alpha
+    url: https://seekingalpha.com/market_currents.xml
+  - name: ZeroHedge
+    url: https://feeds.feedburner.com/zerohedge/feed
+
+  # --- Energi og olje ---
+  - name: OilPrice.com
+    url: https://oilprice.com/rss/main
+  - name: Rigzone
+    url: https://www.rigzone.com/news/rss/rigzone_latest.aspx
+  - name: EIA Today in Energy
+    url: https://www.eia.gov/rss/todayinenergy.xml
+  - name: EIA Press
+    url: https://www.eia.gov/rss/press_rss.xml
+  - name: TU Energi
+    url: https://www.tu.no/rss
+
+  # --- Sentralbankar og statistikk (primærkjelder - raskast av alle) ---
+  - name: Federal Reserve Press
+    url: https://www.federalreserve.gov/feeds/press_all.xml
+  - name: Federal Reserve Speeches
+    url: https://www.federalreserve.gov/feeds/speeches.xml
+  - name: ECB Press
+    url: https://www.ecb.europa.eu/rss/press.html
+  - name: BLS
+    url: https://www.bls.gov/feed/bls_latest.rss
+
+  # --- Målretta Google News-søk (fangar det som ikkje har eigen feed) ---
+  - name: GN Nasdaq
+    url: https://news.google.com/rss/search?q=when:6h+nasdaq+OR+%22stock+futures%22&hl=en-US&gl=US&ceid=US:en
+  - name: GN Olje
+    url: https://news.google.com/rss/search?q=when:6h+%22oil+prices%22+OR+OPEC+OR+crude&hl=en-US&gl=US&ceid=US:en
+  - name: GN Brent/WTI
+    url: https://news.google.com/rss/search?q=when:6h+%22Brent+crude%22+OR+%22WTI%22&hl=en-US&gl=US&ceid=US:en
+  - name: GN Fed og inflasjon
+    url: https://news.google.com/rss/search?q=when:6h+%22federal+reserve%22+OR+inflation+OR+CPI&hl=en-US&gl=US&ceid=US:en
+  - name: GN Resultat
+    url: https://news.google.com/rss/search?q=when:6h+earnings+beat+OR+miss+OR+guidance+nasdaq&hl=en-US&gl=US&ceid=US:en
+  - name: GN Forsyning
+    url: https://news.google.com/rss/search?q=when:6h+%22crude+oil%22+inventories+OR+refinery+OR+%22supply+disruption%22&hl=en-US&gl=US&ceid=US:en
+  - name: GN Geopolitikk
+    url: https://news.google.com/rss/search?q=when:6h+(oil+OR+energy)+(sanctions+OR+strike+OR+attack+OR+pipeline)&hl=en-US&gl=US&ceid=US:en
+  - name: GN OPEC
+    url: https://news.google.com/rss/search?q=when:12h+site:opec.org+OR+%22OPEC%2B%22&hl=en-US&gl=US&ceid=US:en
+
+  # --- Norsk ---
+  - name: E24
+    url: https://e24.no/rss
+  - name: NRK Urix
+    url: https://www.nrk.no/urix/toppsaker.rss
+
+# Reddit-kjelder (gratis JSON-endepunkt).
+reddit_subs:
+  - stocks
+  - investing
+  - energy
+  - oil
+  - StockMarket
+  - economics
+  - wallstreetbets
+
+# Ord som gjer at ei sak går vidare til Claude.
+# Alt anna blir kasta gratis, utan eit einaste API-kall.
+keywords:
+  nasdaq:
+    - nasdaq
+    - s&p 500
+    - federal reserve
+    - fed
+    - interest rate
+    - rate cut
+    - rate hike
+    - inflation
+    - cpi
+    - ppi
+    - jobs report
+    - nonfarm
+    - unemployment
+    - earnings
+    - guidance
+    - nvidia
+    - apple
+    - microsoft
+    - amazon
+    - alphabet
+    - meta
+    - tesla
+    - broadcom
+    - semiconductor
+    - chip
+    - tariff
+    - recession
+    - futures
+  oil:
+    - oil
+    - crude
+    - brent
+    - wti
+    - opec
+    - opec+
+    - barrel
+    - refinery
+    - pipeline
+    - inventories
+    - eia report
+    - saudi
+    - aramco
+    - russia
+    - iran
+    - strait of hormuz
+    - sanctions
+    - production cut
+    - output
+    - drilling
+    - rig count
+    - lng
+
+# Ord som gjer at ei sak blir kasta med ein gong (støy, reklame, spekulasjon).
+noise_words:
+  - horoscope
+  - celebrity
+  - sponsored
+  - "best deals"
+  - coupon
+  - "how to invest"
+  - "top 10 stocks to buy"
+  - casino
+  - crypto giveaway
