@@ -144,3 +144,27 @@ def summarize(quotes):
         sign = "+" if q["change_pct"] >= 0 else ""
         parts.append("%s %s%s%%" % (q["name"], sign, q["change_pct"]))
     return ", ".join(parts)
+
+
+def summarize_grouped(quotes_by_group, groups_config):
+    """Verdsbiletet, gruppert og lesbart.
+
+    Ei flat rekkje med 18 tal er vanskeleg å lese noko ut av - verken
+    for eit menneske eller for ein språkmodell. Grupperinga gjer at
+    'Asia opp, Europa ned' kjem fram som eit mønster i staden for å
+    drukne mellom valutakryss.
+    """
+    blokker = []
+    for key, spec in groups_config.items():
+        quotes = quotes_by_group.get(key) or []
+        if not quotes:
+            continue
+        blokker.append("%s: %s" % (spec.get("label", key), summarize(quotes)))
+    return "\n".join(blokker)
+
+
+def biggest_movers(quotes, minimum_pct=1.0, limit=5):
+    """Dei som faktisk rører på seg. Resten er støy."""
+    movers = [q for q in quotes if abs(q.get("change_pct", 0)) >= minimum_pct]
+    movers.sort(key=lambda q: abs(q["change_pct"]), reverse=True)
+    return movers[:limit]

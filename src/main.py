@@ -152,6 +152,17 @@ def run(mode="auto", dry_run=False):
     price_summary = prices.summarize(all_quotes)
     print("[main] prisar: %s" % (price_summary or "ingen data"))
 
+    # Verdsbiletet. Eige kall, og halde strengt utanfor all_quotes:
+    # desse skal aldri kunne utløyse eit varsel på eiga hand.
+    context_config = config.get("context_assets", {})
+    world_quotes = prices.fetch_all(context_config) if context_config else {}
+    world_summary = prices.summarize_grouped(world_quotes, context_config)
+    world_flat = [q for group in world_quotes.values() for q in group]
+    if world_flat:
+        movers = prices.biggest_movers(world_flat)
+        print("[main] verda: %d tal, størst rørsle: %s" % (
+            len(world_flat), prices.summarize(movers) or "alt roleg"))
+
     # 2. Nyheiter (gratis)
     items = news.fetch_all(config)
     print("[main] henta %d saker" % len(items))
@@ -199,7 +210,8 @@ def run(mode="auto", dry_run=False):
         state.save()
         return 1
 
-    verdict = analyze.evaluate(candidates, price_summary, context_note, api_key)
+    verdict = analyze.evaluate(candidates, price_summary, context_note, api_key,
+                               world_summary=world_summary)
     if verdict is None:
         _handle_failure(state, config, "Claude-kallet feila", dry_run)
         state.save()

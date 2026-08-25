@@ -55,7 +55,41 @@ assets:
       "@CL.1": "CL=F"
       "@LCO.1": "BZ=F"
 
+# --- Verdsbilete ---
+# Desse er IKKJE varselmål. Du får aldri ei melding om at DAX fell.
+# Dei er bakgrunn: Claude ser dei når han skal avgjere kva som skjer
+# med Nasdaq og olje. Ein Nasdaq-open blir noko heilt anna dersom Asia
+# fall 3 % i natt, og olje er noko heilt anna når dollaren styrkar seg.
+#
+# Alle symbol er testa mot CNBC 25.08.2026.
+context_assets:
+  asia_i_natt:
+    label: Asia i natt
+    tickers: [".N225", ".HSI", ".SSEC"]        # Nikkei, Hang Seng, Shanghai
+  europa:
+    label: Europa
+    tickers: [".GDAXI", ".FTSE", ".STOXX50E"]  # DAX, FTSE 100, Euro STOXX 50
+  usa_breidde:
+    label: USA breidde
+    tickers: [".SPX", ".DJI"]                  # S&P 500, Dow
+  nasdaq_drivarar:
+    label: Nasdaq-drivarar
+    # Halvleiarar leier Nasdaq, og renta avgjer kva vekstaksjar er verdt.
+    tickers: [".SOX", "NVDA", "US10Y"]
+  olje_drivarar:
+    label: Olje-drivarar
+    # Energisektoren, gass, bensin-crack og dollaren. Olje fell ofte
+    # rett og slett fordi dollaren stig, utan at noko har hendt.
+    tickers: ["XLE", "@NG.1", "@RB.1", ".DXY"]
+  risiko:
+    label: Risikovilje
+    tickers: [".VIX", "@GC.1"]                 # Frykt-indeksen og gull
+  kroner:
+    label: Kroner
+    tickers: ["NOK=", "EURNOK="]               # USD/NOK, EUR/NOK
+
 # Prisrørsle i prosent som i seg sjølv gjer ei sak interessant.
+# Gjeld berre Nasdaq og olje - ikkje bakgrunnsbiletet.
 price_move_threshold_pct: 0.8
 
 # Maks alder på ei sak før ho blir ignorert.
