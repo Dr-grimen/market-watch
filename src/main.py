@@ -86,7 +86,8 @@ def briefing_due(local_time, config, state):
     return state.briefing_due(local_time.strftime("%Y-%m-%d"))
 
 
-def build_briefing(verdict, price_summary, chart_summary, local_time, threshold):
+def build_briefing(verdict, price_summary, chart_summary, local_time, threshold,
+                   pending=None):
     """Kort. Sondre bad om "ein rask og lett melding", og fekk det.
 
     Prosenten står likevel med. Ei melding som seier "sikker" utan tal
@@ -106,8 +107,17 @@ def build_briefing(verdict, price_summary, chart_summary, local_time, threshold)
     # Sondre bad om kort. På ein SIKKER dag står talet, for der er
     # skilnaden mellom 66 og 90 heile skilnaden.
     if direction not in ("opp", "ned") or conf < threshold:
-        return "Halla Sjef 👋\nGrå dag i dag!\n\n%s" % (
-            local_time.strftime("%d.%m %H:%M"))
+        # Ein grå dag er greitt, men han er ikkje det same som ein tom
+        # dag. Ligg det eit CPI- eller PCE-tal ute klokka 14:30, er
+        # dagen grå NO og kan bli noko heilt anna om fem timar. Det er
+        # verdt éi linje - då veit han når det er verdt å følgje med.
+        varsel = ""
+        if pending:
+            fyrst = pending[0]
+            varsel = "\n\n(%s kl. %s - kan bli noko seinare i dag.)" % (
+                fyrst["name"], fyrst["time_local"])
+        return "Halla Sjef 👋\nGrå dag i dag!%s\n\n%s" % (
+            varsel, local_time.strftime("%d.%m %H:%M"))
 
     return "Halla Sjef 👋\nEg er sikker på %s i dag (%d %%).\n\n%s\n\n%s\n%s" % (
         direction.upper(), round(conf * 100), fyrste,
@@ -311,7 +321,7 @@ def _maybe_lean_alert(state, config, local_time, verdict, price_summary,
 def _send_briefing(state, config, local_time, candidates, price_summary,
                    world_summary, technical_summary, calendar_summary,
                    chart_summary, ensemble_summary, quotes_by_asset,
-                   api_key, dry_run):
+                   pending, api_key, dry_run):
     """Sender morgonmeldinga. Feilar ho, blir det stille - ikkje eit krasj."""
     today = local_time.strftime("%Y-%m-%d")
     if not api_key:
@@ -344,7 +354,7 @@ def _send_briefing(state, config, local_time, candidates, price_summary,
                        verdict.get("confidence", 0.0), nasdaq_no, "briefing")
 
     message = build_briefing(verdict, price_summary, chart_summary, local_time,
-                             config.get("confidence_threshold", 0.75))
+                             config.get("confidence_threshold", 0.75), pending)
     if dry_run:
         print("[main] DRY RUN - ville sendt morgonmelding:\n%s" % message)
         return
@@ -430,12 +440,12 @@ def run(mode="auto", dry_run=False):
     # Kalenderen (gratis). Det einaste i heile verktøyet som er fakta
     # og ikkje tolking: kva som er planlagt, og om det har kome enno.
     calendar_summary = ""
-    ventar = 0
+    ventar, pending = 0, []
     try:
         kalender = market_calendar.fetch_today(
             local_time.strftime("%Y-%m-%d"), tzname)
         calendar_summary = market_calendar.format_calendar(kalender)
-        ventar, _ = market_calendar.pending_count(kalender)
+        ventar, pending = market_calendar.pending_count(kalender)
         print("[main] kalender: %d store tal ventar enno i dag" % ventar)
     except Exception as exc:
         print("[main] kalenderen svarte ikkje (%s) - held fram utan"
@@ -503,7 +513,7 @@ def run(mode="auto", dry_run=False):
         _send_briefing(state, config, local_time, candidates, price_summary,
                        world_summary, technical_summary, calendar_summary,
                        chart_summary, ensemble_summary, quotes_by_asset,
-                       api_key, dry_run)
+                       pending, api_key, dry_run)
 
     if not candidates and not big_move:
         print("[main] ingenting å vurdere - stille")
