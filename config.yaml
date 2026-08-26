@@ -32,9 +32,15 @@ max_items_to_llm: 12
 # 5 feil = ca. 100 minutt nede før du blir plaga.
 failure_alert_after: 5
 
-# Eit livsteikn i veka, så du veit at stille faktisk tyder stille.
+# AV, og det kostar ingenting - for morgonmeldinga ER livsteiknet.
+#
+# Då heile verktøyet var stille som normaltilstand, trongst eit eige
+# signal for å skilje "roleg marknad" frå "knekt verktøy". No kjem det
+# ei melding kvar einaste handledag uansett. Uteblir ho, veit du med
+# ein gong at noko er gale. Ei ekstra melding om fredagen ville berre
+# fortalt deg det du alt visste måndag til fredag.
 # weekday: 0=måndag ... 4=fredag. hour er lokal tid.
-heartbeat_enabled: true
+heartbeat_enabled: false
 heartbeat_weekday: 4
 heartbeat_hour: 17
 
@@ -117,7 +123,7 @@ briefing_window_minutes: 25
 # Desse to er ikkje vurderingar. Eit tal som er sleppt og ei rørsle som
 # skjer er fakta, og dei går ut med ein gong utan at nokon har gjetta.
 event_alert_enabled: true        # "Core PCE kom inn på 0,1 % - venta var 0,2 %"
-move_alert_enabled: true         # "Det rører seg - Nasdaq ned 1,4 % no"
+move_alert_enabled: false         # "Det rører seg - Nasdaq ned 1,4 % no"
 # Éi melding per nivå. Ein dag som fell jamt skal ikkje gi tjue meldingar.
 move_alert_levels: [1.0, 2.0, 3.0]
 
@@ -140,7 +146,7 @@ lean_cooldown_minutes: 240
 # rykkjer kraftig, heile verda skriv om det, og signala framleis sprikar,
 # så ER uvissa nyheita - og då er stille misvisande.
 # Alle fire vilkåra må vere oppfylte, og du får maks eitt i døgnet.
-uncertainty_alert_enabled: true
+uncertainty_alert_enabled: false
 uncertainty_max_confidence: 0.4      # Lunken tvil tel ikkje. Det må vere ekte uvisse.
 uncertainty_move_multiplier: 1.8     # Utslaget må vere 1,8x den vanlege terskelen.
 uncertainty_min_sources: 4           # Store ting blir dekte av mange aviser.
