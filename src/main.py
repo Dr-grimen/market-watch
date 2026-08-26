@@ -16,7 +16,7 @@ except ImportError:  # Python < 3.9
 
 from .config import load_config, env
 from .state import State
-from .sources import news, prices, history
+from .sources import news, prices, history, calendar as market_calendar
 from . import rules, analyze, notify, technicals
 
 
@@ -239,7 +239,8 @@ def _maybe_uncertainty_alert(state, config, local_time, verdict, candidates,
 
 
 def _send_briefing(state, config, local_time, candidates, price_summary,
-                   world_summary, technical_summary, api_key, dry_run):
+                   world_summary, technical_summary, calendar_summary,
+                   api_key, dry_run):
     """Sender morgonmeldinga. Feilar ho, blir det stille - ikkje eit krasj."""
     today = local_time.strftime("%Y-%m-%d")
     if not api_key:
@@ -253,6 +254,7 @@ def _send_briefing(state, config, local_time, candidates, price_summary,
         api_key=api_key,
         world_summary=world_summary,
         technical_summary=technical_summary,
+        calendar_summary=calendar_summary,
         system_prompt=analyze.BRIEFING_PROMPT,
     )
     if verdict is None:
@@ -327,6 +329,20 @@ def run(mode="auto", dry_run=False):
         print("[main] chart: %d instrument | statistisk kant: %s" % (
             len(reports), tech_edge[2] if tech_edge else "ingen over støygrensa"))
 
+    # Kalenderen (gratis). Det einaste i heile verktøyet som er fakta
+    # og ikkje tolking: kva som er planlagt, og om det har kome enno.
+    calendar_summary = ""
+    ventar = 0
+    try:
+        kalender = market_calendar.fetch_today(
+            local_time.strftime("%Y-%m-%d"), tzname)
+        calendar_summary = market_calendar.format_calendar(kalender)
+        ventar, _ = market_calendar.pending_count(kalender)
+        print("[main] kalender: %d store tal ventar enno i dag" % ventar)
+    except Exception as exc:
+        print("[main] kalenderen svarte ikkje (%s) - held fram utan"
+              % type(exc).__name__)
+
     # 2. Nyheiter (gratis)
     items = news.fetch_all(config)
     print("[main] henta %d saker" % len(items))
@@ -360,7 +376,8 @@ def run(mode="auto", dry_run=False):
     # svar som skal sendast.
     if mode == "briefing" or briefing_due(local_time, config, state):
         _send_briefing(state, config, local_time, candidates, price_summary,
-                       world_summary, technical_summary, api_key, dry_run)
+                       world_summary, technical_summary, calendar_summary,
+                       api_key, dry_run)
 
     if not candidates and not big_move:
         print("[main] ingenting å vurdere - stille")
@@ -395,7 +412,8 @@ def run(mode="auto", dry_run=False):
 
     verdict = analyze.evaluate(candidates, price_summary, context_note, api_key,
                                world_summary=world_summary,
-                               technical_summary=technical_summary)
+                               technical_summary=technical_summary,
+                               calendar_summary=calendar_summary)
     if verdict is None:
         _handle_failure(state, config, "Claude-kallet feila", dry_run)
         state.save()

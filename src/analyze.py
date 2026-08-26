@@ -48,6 +48,20 @@ det er sjølve hendinga (Fed, ECB, EIA, BLS), ikkje omtale av henne - det er det
 sterkaste materialet som finst. "laus kjelde" er aggregatorar og forum, og skal \
 aldri åleine bere eit varsel.
 
+KALENDEREN - DET EINASTE DU IKKJE TRENG Å TOLKE:
+Du får vite kva som er planlagt i dag, med konsensus og førre verdi.
+
+- Står det "IKKJE SLEPPT ENNO" på eit stort tal (CPI, PCE, jobbtal, \
+rentebeslutning, oljelager), skal confidence NED, ikkje opp. Ingen veit kva \
+det talet blir. Å seie "opp" tre timar før CPI er å gjette på ein terning som \
+ikkje er kasta. Maks 0.5 confidence når eit slikt tal ligg ute.
+- Står det "ALT SLEPPT" med ein faktisk verdi som avvik klart frå konsensus, \
+er det det STERKASTE materialet som finst. Då kan confidence vere høg.
+- Ventar eit resultat frå eit selskap som Nvidia etter stenging, er retninga \
+på Nasdaq neste dag i praksis ukjend uansett kva anna du ser.
+- Står det ingenting på kalenderen, er det eit argument for at ein roleg dag \
+faktisk ER roleg - og ikkje stille før noko du har oversett.
+
 CHARTLESING - KVA SOM FAKTISK HELD:
 Du får trend, RSI, MACD, ATR, Bollinger og lysestake-mønster, og for kvart \
 mønster kva som HISTORISK hende etterpå i akkurat det instrumentet.
@@ -177,8 +191,11 @@ TIER_LABEL = {
 
 
 def _build_material(candidates, price_summary, context_note, world_summary="",
-                    technical_summary=""):
+                    technical_summary="", calendar_summary=""):
     lines = ["<material>", "NASDAQ OG OLJE NO:", price_summary]
+    if calendar_summary:
+        lines += ["", "PLANLAGT I DAG (dette er FAKTA, ikkje tolking):",
+                  calendar_summary]
     if world_summary:
         lines += ["", "VERDSBILETE (bakgrunn - ikkje varselmål):", world_summary]
     if technical_summary:
@@ -277,14 +294,16 @@ def _call(client, material, use_schema, system_prompt=SYSTEM_PROMPT):
 
 
 def evaluate(candidates, price_summary, context_note="", api_key=None,
-             world_summary="", technical_summary="", system_prompt=None):
+             world_summary="", technical_summary="", calendar_summary="",
+             system_prompt=None):
     """Returnerer validert dict, eller None dersom kallet feilar."""
     if not candidates and not technical_summary:
         return None
 
     client = anthropic.Anthropic(api_key=api_key) if api_key else anthropic.Anthropic()
     material = _build_material(candidates, price_summary, context_note,
-                               world_summary, technical_summary)
+                               world_summary, technical_summary,
+                               calendar_summary)
     system_prompt = system_prompt or SYSTEM_PROMPT
 
     for use_schema in (True, False):
