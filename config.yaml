@@ -46,20 +46,15 @@ assets:
       ".IXIC": "^IXIC"
       ".NDX": "^NDX"
       "@ND.1": "NQ=F"
-  oil:
-    label: Olje
-    tickers:
-      - "@CL.1"   # WTI råolje
-      - "@LCO.1"  # Brent råolje
-    yahoo_fallback:
-      "@CL.1": "CL=F"
-      "@LCO.1": "BZ=F"
 
 # --- Verdsbilete ---
-# Desse er IKKJE varselmål. Du får aldri ei melding om at DAX fell.
-# Dei er bakgrunn: Claude ser dei når han skal avgjere kva som skjer
-# med Nasdaq og olje. Ein Nasdaq-open blir noko heilt anna dersom Asia
-# fall 3 % i natt, og olje er noko heilt anna når dollaren styrkar seg.
+# Desse er IKKJE varselmål. Du får aldri ei melding om at olja fell,
+# at gullet stig eller at DAX ryk. Dei er berre bakgrunn: Claude ser
+# dei når han skal avgjere kva som skjer med NASDAQ, og ingenting anna.
+#
+# Olja ligg her fordi ho driv inflasjonen, inflasjonen driv renta, og
+# renta avgjer kva vekstaksjar er verdt. Ho er ein Nasdaq-indikator -
+# ikkje eit varselmål.
 #
 # Alle symbol er testa mot CNBC 25.08.2026.
 context_assets:
@@ -76,11 +71,11 @@ context_assets:
     label: Nasdaq-drivarar
     # Halvleiarar leier Nasdaq, og renta avgjer kva vekstaksjar er verdt.
     tickers: [".SOX", "NVDA", "US10Y"]
-  olje_drivarar:
-    label: Olje-drivarar
-    # Energisektoren, gass, bensin-crack og dollaren. Olje fell ofte
-    # rett og slett fordi dollaren stig, utan at noko har hendt.
-    tickers: ["XLE", "@NG.1", "@RB.1", ".DXY"]
+  olje_og_energi:
+    label: Olje og energi (bakgrunn)
+    # Olja sjølv, energisektoren, gass og dollaren. Stig olja mykje,
+    # pressar det inflasjonen opp - og det treffer Nasdaq via renta.
+    tickers: ["@CL.1", "@LCO.1", "XLE", "@NG.1", ".DXY"]
   risiko:
     label: Risikovilje
     tickers: [".VIX", "@GC.1"]                 # Frykt-indeksen og gull
@@ -93,20 +88,12 @@ context_assets:
 # indeksar, berre ETF-ar og aksjar - og det er like greitt: ein ETF har
 # ekte volum, og volum er halve poenget med eit lysestake-mønster.
 #
-# QQQ følgjer Nasdaq-100. USO følgjer WTI, BNO følgjer Brent. Olje-ETF-ar
-# har litt rullekostnad over år, men over 1-5 dagar er det utan verknad.
+# QQQ følgjer Nasdaq-100 og har ekte omsetnad. Det er det einaste
+# instrumentet som blir chartlese - brukaren handlar ikkje anna.
 history_assets:
   nasdaq:
     label: QQQ (Nasdaq-100)
     symbol: QQQ
-    assetclass: etf
-  wti:
-    label: USO (WTI-olje)
-    symbol: USO
-    assetclass: etf
-  brent:
-    label: BNO (Brent-olje)
-    symbol: BNO
     assetclass: etf
 
 # --- Melding kvar morgon ---
@@ -132,7 +119,7 @@ uncertainty_move_multiplier: 1.8     # Utslaget må vere 1,8x den vanlege terske
 uncertainty_min_sources: 4           # Store ting blir dekte av mange aviser.
 
 # Prisrørsle i prosent som i seg sjølv gjer ei sak interessant.
-# Gjeld berre Nasdaq og olje - ikkje bakgrunnsbiletet.
+# Gjeld berre Nasdaq - ikkje bakgrunnsbiletet.
 price_move_threshold_pct: 0.8
 
 # --- Kor mykje veg kjelda? ---

@@ -58,6 +58,12 @@ def score(item, assets_hit, tiers=None):
 
     points += TIER_POINTS.get(source_tier(item.get("source", ""), tiers), 0)
 
+    # Berre Nasdaq er varselmål. Oljesaker er framleis nyttige - dei seier
+    # noko om inflasjon - men dei skal ikkje skuve Nasdaq-saker ut av dei
+    # tolv plassane vi har hjå Claude.
+    if assets_hit == ["oil"]:
+        points -= 4
+
     # Ferskt slår gammalt.
     age = item.get("age_hours")
     if age is not None:

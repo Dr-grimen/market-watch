@@ -86,55 +86,55 @@ def briefing_due(local_time, config, state):
     return state.briefing_due(local_time.strftime("%Y-%m-%d"))
 
 
-def build_briefing(verdict, price_summary, world_summary, local_time):
-    """Meldinga du får kvar morgon, 20 minutt før Oslo opnar."""
+def build_briefing(verdict, price_summary, chart_summary, local_time, threshold):
+    """Morgonmeldinga. Kort med vilje.
+
+    Brukaren spurde om éin ting: er Nasdaq sikker eller ikkje. Verdsbiletet,
+    kalenderen og alle kjeldene går framleis inn til modellen - men dei skal
+    ikkje ut att på telefonen hans. Han skal sjå konklusjonen, ikkje
+    råmaterialet.
+    """
     direction = verdict.get("direction", "uklart")
-    heading = {
-        "opp": "OPP",
-        "ned": "NED",
-    }.get(direction, "UKLART - ingen retning å stole på")
+    conf = float(verdict.get("confidence", 0.0))
+    sikker = direction in ("opp", "ned") and conf >= threshold
 
-    text = verdict.get("message") or verdict.get("reasoning", "")
-
-    # Ikkje påstå at Oslo opnar om 20 minutt når klokka er 11 og han
-    # opna for to timar sidan. Meldinga kjem når maskina er vaken, og
-    # det er ikkje alltid når han skulle.
-    minutter = (9 * 60) - (local_time.hour * 60 + local_time.minute)
-    if minutter > 90:
-        opning = "God morgon. Oslo opnar om %d min." % minutter
-    elif minutter > 0:
-        opning = "God morgon. Oslo opnar om %d min." % minutter
-    elif minutter > -60:
-        opning = "God morgon. Oslo har akkurat opna."
+    if sikker:
+        svar = "JA - %s (%d %% sikker)" % (direction.upper(), round(conf * 100))
+    elif direction in ("opp", "ned"):
+        svar = "NEI - lener mot %s, men berre %d %% sikker" % (
+            direction, round(conf * 100))
     else:
-        opning = ("God morgon. Denne kjem seint - Oslo opna for %d timar "
-                  "sidan (Macen sov). Biletet under er frå no." % (-minutter // 60))
+        svar = "NEI - retninga er uklar (%d %%)" % round(conf * 100)
+
+    minutter = (9 * 60) - (local_time.hour * 60 + local_time.minute)
+    if minutter > 0:
+        naar = "Oslo opnar om %d min" % minutter
+    elif minutter > -60:
+        naar = "Oslo har akkurat opna"
+    else:
+        naar = "sein - Oslo opna for %d t sidan" % (-minutter // 60)
 
     return (
-        "%s\n"
-        "RETNING: %s (%d %% sikker)\n\n"
+        "NASDAQ - %s\n"
+        "SIKKER? %s\n\n"
         "%s\n\n"
-        "Nasdaq og olje no: %s\n\n"
         "%s\n\n"
-        "Dette er ei skildring av marknaden, ikkje eit råd. Avgjerda er di.\n"
+        "%s\n\n"
+        "Skildring av marknaden, ikkje eit råd.\n"
         "%s"
     ) % (
-        opning,
-        heading,
-        int(round(verdict.get("confidence", 0) * 100)),
-        text,
+        naar,
+        svar,
+        verdict.get("message") or verdict.get("reasoning", ""),
         price_summary or "ingen prisdata",
-        world_summary or "",
+        chart_summary or "",
         local_time.strftime("%d.%m %H:%M"),
     )
 
 
 def build_message(verdict, price_summary, local_time):
     text = verdict.get("message") or verdict.get("reasoning", "")
-    label = {
-        "nasdaq": "NASDAQ", "oil": "OLJE",
-        "begge": "NASDAQ+OLJE", "ingen": "MARKNAD",
-    }.get(verdict.get("asset"), "MARKNAD")
+    label = "NASDAQ"
     arrow = {"opp": "OPP", "ned": "NED"}.get(verdict.get("direction"), "?")
 
     return "[%s %s | %s | %d%%] %s\n%s\n%s" % (
@@ -257,7 +257,7 @@ def _maybe_uncertainty_alert(state, config, local_time, verdict, candidates,
 
 # Kva historikk-instrumentet svarar til blant dei live prisane. QQQ
 # følgjer Nasdaq, USO og BNO følgjer olja.
-_LIVE_MAP = {"nasdaq": "nasdaq", "wti": "oil", "brent": "oil"}
+_LIVE_MAP = {"nasdaq": "nasdaq"}
 
 
 def _live_move(quotes_by_asset, history_key):
@@ -274,7 +274,7 @@ def _live_move(quotes_by_asset, history_key):
 
 def _send_briefing(state, config, local_time, candidates, price_summary,
                    world_summary, technical_summary, calendar_summary,
-                   api_key, dry_run):
+                   chart_summary, api_key, dry_run):
     """Sender morgonmeldinga. Feilar ho, blir det stille - ikkje eit krasj."""
     today = local_time.strftime("%Y-%m-%d")
     if not api_key:
@@ -298,7 +298,8 @@ def _send_briefing(state, config, local_time, candidates, price_summary,
         print("[main] morgonmelding: mistenkeleg innhald i materialet - inga melding")
         return
 
-    message = build_briefing(verdict, price_summary, world_summary, local_time)
+    message = build_briefing(verdict, price_summary, chart_summary, local_time,
+                             config.get("confidence_threshold", 0.75))
     if dry_run:
         print("[main] DRY RUN - ville sendt morgonmelding:\n%s" % message)
         return
@@ -350,6 +351,7 @@ def run(mode="auto", dry_run=False):
 
     # Chart og statistikk (gratis - historikken ligg i cache på disk)
     technical_summary = ""
+    chart_summary = ""
     tech_edge = None
     reports = []
     for key, spec in config.get("history_assets", {}).items():
@@ -359,6 +361,7 @@ def run(mode="auto", dry_run=False):
             reports.append(report)
     if reports:
         technical_summary = "\n".join(technicals.format_report(r) for r in reports)
+        chart_summary = technicals.short_summary(reports[0])
         tech_edge = technicals.strongest_edge(reports)
 
         # Kva rørsla i natt faktisk tyder. Dette er det næraste vi kjem
@@ -427,7 +430,7 @@ def run(mode="auto", dry_run=False):
     if mode == "briefing" or briefing_due(local_time, config, state):
         _send_briefing(state, config, local_time, candidates, price_summary,
                        world_summary, technical_summary, calendar_summary,
-                       api_key, dry_run)
+                       chart_summary, api_key, dry_run)
 
     if not candidates and not big_move:
         print("[main] ingenting å vurdere - stille")

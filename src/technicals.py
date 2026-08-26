@@ -30,11 +30,11 @@ MIN_SAMPLE = 20      # Færre tilfelle enn dette er anekdotar, ikkje statistikk.
 SIGNIFICANT_Z = 2.0  # Under dette kallar vi det støy, uansett kor pent det ser ut.
 
 # Og over 2 held heller ikkje åleine. Vi testar 29 mønster på to
-# horisontar for tre instrument - 174 testar. Ved z=2 er det venta at
-# rundt 9 av dei slår ut på rein flaks. Difor finst det eit strengare
-# nivå, og berre det får lov til å påverke ei avgjerd.
+# horisontar - 58 testar. Ved z=2 er det venta at rundt 3 av dei slår
+# ut på rein flaks. Difor finst det eit strengare nivå, og berre det
+# får lov til å påverke ei avgjerd.
 STRONG_Z = 3.0
-TESTS_RUN = 174
+TESTS_RUN = 29 * 2
 
 
 # ---------------------------------------------------------------- indikatorar
@@ -679,7 +679,7 @@ TECHNICAL_CAVEAT = (
     "dagar - utslag som klumpar seg saman er slåtte i hop, og vindauga overlappar "
     "ikkje. 'basis' er kor ofte kursen stig uansett, og han er over 50 %% for "
     "aksjar, så eit mønster med 55 %% treff er DÅRLEGARE enn ingenting. Vi testar "
-    "%d kombinasjonar, så rundt 9 av dei vil vise z over 2 av rein flaks. Berre "
+    "%d kombinasjonar, så nokre av dei vil vise z over 2 av rein flaks. Berre "
     "linjer merkte STERK OG STABIL har overlevd både eit strengare krav og ein "
     "test på om kanten held seg i begge halvdelar av historikken. Alt anna skal "
     "du lese som 'ingen informasjon'." % TESTS_RUN
@@ -808,3 +808,46 @@ def gap_context(stats, current_move_pct, label):
         "basis %.0f %%. Rørsla i natt seier altså lite om resten av dagen."
     ) % (label, current_move_pct, match["label"], match["n"], retning,
          match["further_up"] * 100.0, stats["base"] * 100.0)
+
+
+def short_summary(report):
+    """Chartet i tre liner, til sjølve meldinga.
+
+    format_report() er skriven for modellen og er med vilje ordrik -
+    han skal kunne sjå kvar einaste z-verdi. Dette er skrive for eit
+    menneske på ein telefon, og då er tre liner grensa.
+    """
+    if not report:
+        return "Chart: ingen data."
+
+    reg = report["regime"]
+    bits = ["Trend %s" % reg["trend"]]
+    if reg["rsi"] is not None:
+        bits.append("RSI %.0f" % reg["rsi"])
+    if reg["atr_pct"] is not None:
+        bits.append("ATR %.1f %%" % reg["atr_pct"])
+    lines = ["CHART (%s, siste ferdige dag):" % report["label"],
+             "  " + " · ".join(bits)]
+
+    # Berre mønster som faktisk har tyngde fortener plass. Resten er
+    # nettopp det brukaren ikkje skal drukne i.
+    sterke = []
+    for sig in report["signals"]:
+        for horizon in HORIZONS:
+            st = sig["stats"][horizon]
+            if st.get("enough") and st.get("trustworthy"):
+                sterke.append("%s: %s opp over %d dag(ar), n=%d" % (
+                    sig["name"], _pct(st["hit_rate"]), horizon, st["n"]))
+    if sterke:
+        lines.append("  Mønster med tyngde: " + "; ".join(sterke[:2]))
+    elif report["signals"]:
+        namn = ", ".join(s["name"] for s in report["signals"][:3])
+        lines.append("  Mønster i går: %s - men ingen av dei held "
+                     "statistisk" % namn)
+    else:
+        lines.append("  Mønster i går: ingen av dei 29 slo ut")
+
+    base = report["base_rates"].get(1)
+    if base is not None:
+        lines.append("  Basis: %s av alle dagar går opp uansett" % _pct(base))
+    return "\n".join(lines)

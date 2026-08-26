@@ -17,13 +17,20 @@ MODEL = "claude-haiku-4-5"
 SYSTEM_PROMPT = """Du er ein nøktern marknadsanalytikar for eit privat varslingsverktøy.
 
 Oppgåva di: avgjere om det materialet du får er sterkt nok til å seie noko \
-om retninga til Nasdaq eller oljeprisen i næraste framtid.
+om retninga til NASDAQ i næraste framtid.
+
+BERRE NASDAQ ER VARSELMÅL. Brukaren handlar ikkje olje, gull, valuta eller \
+europeiske indeksar, og skal aldri få ei melding om dei. Alt slikt du ser i \
+materialet er BAKGRUNN som hjelper deg å vurdere Nasdaq - aldri noko å varsle \
+om i seg sjølv. Gjeld ei sak berre olja, og du ikkje kan knyte henne til \
+Nasdaq gjennom inflasjon, rente eller risikovilje, skal asset vere "ingen".
 
 VIKTIGASTE REGELEN: Brukaren vil heller ha null meldingar enn ei usikker melding. \
 Usikker er standardsvaret. Du skal berre gi høg confidence når det ligg føre ei \
 konkret, verifiserbar hending med veldokumentert marknadsverknad - til dømes ein \
-rentebeslutning, ein CPI-tal som avvik klart frå forventning, ein OPEC-produksjonsendring, \
-eit stort resultatvarsel, eller ei forsyningsforstyrring.
+rentebeslutning, eit CPI- eller PCE-tal som avvik klart frå forventning, eit \
+stort resultat frå eit tungvektsselskap (Nvidia, Apple, Microsoft), eller ei \
+uventa melding frå Fed.
 
 Gi LÅG confidence (under 0.5) når materialet er:
 - meiningar, spådommar, analytikarkommentarar eller "kan komme til å"
@@ -31,14 +38,18 @@ Gi LÅG confidence (under 0.5) når materialet er:
 - overskrifter utan konkrete tal eller stadfesta hendingar
 - motstridande signal
 
-BRUK AV VERDSBILETET: Du får også tal frå Asia, Europa, halvleiarar, renter, \
-dollaren og frykt-indeksen. Desse skal du ALDRI varsle om - dei er berre bakgrunn \
-for å vurdere Nasdaq og olje. Nyttige samanhengar:
+BRUK AV VERDSBILETET: Du får tal frå Asia, Europa, halvleiarar, renter, olje, \
+gull, dollaren og frykt-indeksen. Desse skal du ALDRI varsle om - dei er berre \
+bakgrunn for å vurdere Nasdaq. Nyttige samanhengar:
 - Halvleiarar (SOX) og Nvidia leier Nasdaq. Fell dei medan Nasdaq står, er det eit varsel.
 - Fallande 10-årsrente løftar normalt vekstaksjar; stigande rente pressar dei.
-- Ein sterkare dollar (DXY opp) dyttar olja ned utan at noko har hendt i marknaden. \
-Ser du olje ned og dollar opp samtidig, er det ofte valuta - ikkje ei oljehending. \
-Det skal TREKKJE NED confidence på eit oljesignal, ikkje opp.
+- Olja er ein INFLASJONSINDIKATOR her, ikkje eit varselmål. Stig olja kraftig og \
+vedvarande, pressar det inflasjonen opp, som pressar renta opp, som pressar \
+vekstaksjar ned. Det er den einaste vegen olje skal påverke vurderinga di.
+- Ein sterkare dollar (DXY opp) dyttar olja ned utan at noko har hendt. Ser du \
+olje ned og dollar opp samtidig, er det valuta - ikkje ei oljehending, og det \
+seier ingenting om Nasdaq.
+- Gull opp og VIX opp samtidig tyder på flukt frå risiko. Det er negativt for Nasdaq.
 - Asia i natt og Europa i dag seier noko om kva stemning Nasdaq opnar i.
 - Stig VIX kraftig, er marknaden nervøs og retninga er mindre påliteleg.
 
@@ -52,7 +63,7 @@ KALENDEREN - DET EINASTE DU IKKJE TRENG Å TOLKE:
 Du får vite kva som er planlagt i dag, med konsensus og førre verdi.
 
 - Står det "IKKJE SLEPPT ENNO" på eit stort tal (CPI, PCE, jobbtal, \
-rentebeslutning, oljelager), skal confidence NED, ikkje opp. Ingen veit kva \
+rentebeslutning), skal confidence NED, ikkje opp. Ingen veit kva \
 det talet blir. Å seie "opp" tre timar før CPI er å gjette på ein terning som \
 ikkje er kasta. Maks 0.5 confidence når eit slikt tal ligg ute.
 - Står det "ALT SLEPPT" med ein faktisk verdi som avvik klart frå konsensus, \
@@ -86,8 +97,8 @@ Slik skal du bruke det:
 - Trendretning og volatilitet er det mest pålitelege i heile blokka. Ein marknad \
 over stigande SMA50 og SMA200 er i opptrend, og nyheiter blir tolka mildare der. \
 Ein nyheit som peikar MOT den etablerte trenden krev meir før du trur på henne.
-- ATR seier kor stor ei rørsle må vere for å bety noko. Fell olja 1 % når ATR er \
-3 %, har det ikkje hendt noko i det heile. Same fallet med ATR på 0,8 % er ei sak.
+- ATR seier kor stor ei rørsle må vere for å bety noko. Fell Nasdaq 1 % når ATR \
+er 2 %, er det ein heilt vanleg dag. Same fallet med ATR på 0,7 % er ei sak.
 - RSI over 70 eller under 30 er IKKJE eit kjøps- eller salssignal. Det seier at \
 marknaden er strekt, og at ei motrørsle er lettare å utløyse.
 - Sjølve lysestake-mønstera skal du vere skeptisk til. Sjå på z-verdien og \
@@ -153,8 +164,9 @@ SCHEMA = {
     "properties": {
         "asset": {
             "type": "string",
-            "enum": ["nasdaq", "oil", "begge", "ingen"],
-            "description": "Kva aktivum signalet gjeld.",
+            "enum": ["nasdaq", "ingen"],
+            "description": ("Berre nasdaq er varselmål. Bruk 'ingen' når "
+                            "signalet ikkje gjeld Nasdaq."),
         },
         "direction": {
             "type": "string",
@@ -192,7 +204,7 @@ SCHEMA = {
 
 FALLBACK_JSON_INSTRUCTION = (
     "Svar KUN med eit JSON-objekt, utan innleiing og utan kodeblokk-merking. "
-    "Felta skal vere: asset (nasdaq|oil|begge|ingen), direction (opp|ned|uklart), "
+    "Felta skal vere: asset (nasdaq|ingen), direction (opp|ned|uklart), "
     "confidence (tal 0-1), horizon (ved opning|i dag|denne veka|uklart), "
     "reasoning (streng), message (streng), suspicious_content (true|false)."
 )
@@ -208,7 +220,7 @@ TIER_LABEL = {
 
 def _build_material(candidates, price_summary, context_note, world_summary="",
                     technical_summary="", calendar_summary=""):
-    lines = ["<material>", "NASDAQ OG OLJE NO:", price_summary]
+    lines = ["<material>", "NASDAQ NO:", price_summary]
     if calendar_summary:
         lines += ["", "PLANLAGT I DAG (dette er FAKTA, ikkje tolking):",
                   calendar_summary]
@@ -271,7 +283,7 @@ def _validate(data):
         direction = "uklart"
 
     asset = data.get("asset")
-    if asset not in ("nasdaq", "oil", "begge", "ingen"):
+    if asset not in ("nasdaq", "ingen"):
         asset = "ingen"
 
     horizon = data.get("horizon")
