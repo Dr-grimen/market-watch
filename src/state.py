@@ -30,6 +30,13 @@ class State(object):
         self.week_runs = data.get("week_runs", 0)
         self.week_items = data.get("week_items", 0)
         self.week_alerts = data.get("week_alerts", 0)
+        self.last_briefing_date = data.get("last_briefing_date", "")
+        self.last_uncertainty_date = data.get("last_uncertainty_date", "")
+
+        # Kva kjelder som faktisk svarte sist. Ein feed som stille sluttar
+        # å levere er den farlegaste feilen i heile verktøyet: alt ser ut
+        # til å verke, men du overvakar mindre og mindre av verda.
+        self.feed_health = data.get("feed_health", {})
 
     @classmethod
     def load(cls):
@@ -57,6 +64,9 @@ class State(object):
             "week_runs": self.week_runs,
             "week_items": self.week_items,
             "week_alerts": self.week_alerts,
+            "last_briefing_date": self.last_briefing_date,
+            "last_uncertainty_date": self.last_uncertainty_date,
+            "feed_health": self.feed_health,
         }
         with open(STATE_PATH, "w", encoding="utf-8") as fh:
             json.dump(payload, fh)
@@ -112,6 +122,48 @@ class State(object):
             self.failure_notified = True
             return True
         return False
+
+    def briefing_due(self, today):
+        return self.last_briefing_date != today
+
+    def record_briefing(self, today):
+        self.last_briefing_date = today
+
+    def uncertainty_due(self, today):
+        return self.last_uncertainty_date != today
+
+    def record_uncertainty(self, today):
+        self.last_uncertainty_date = today
+
+    # --- kjeldehelse --------------------------------------------------
+
+    def record_feed_result(self, name, got_items):
+        """Hugsar når kvar kjelde sist leverte noko."""
+        entry = self.feed_health.get(name) or {}
+        if got_items:
+            entry["last_ok"] = time.time()
+        entry["last_seen"] = time.time()
+        self.feed_health[name] = entry
+
+    def dead_feeds(self, names, quiet_days=7):
+        """Kjelder som ikkje har levert ei sak på ei veke.
+
+        Ei kjelde kan godt vere tom nokre timar. Har ho vore tom i sju
+        døgn medan alle dei andre leverer, er det ikkje rolege tider -
+        då er URL-en død.
+        """
+        cutoff = time.time() - quiet_days * 24 * 3600
+        dead = []
+        for name in names:
+            entry = self.feed_health.get(name)
+            if not entry:
+                continue
+            first = entry.get("last_seen", 0)
+            if first and first < cutoff:
+                continue  # Vi har ikkje sett henne i det heile - eige problem.
+            if entry.get("last_ok", 0) < cutoff:
+                dead.append(name)
+        return dead
 
     def heartbeat_due(self, min_days=6):
         return (time.time() - self.last_heartbeat) > min_days * 24 * 3600

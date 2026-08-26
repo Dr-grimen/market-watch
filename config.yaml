@@ -88,9 +88,86 @@ context_assets:
     label: Kroner
     tickers: ["NOK=", "EURNOK="]               # USD/NOK, EUR/NOK
 
+# --- Chart og statistikk ---
+# Dagleg OHLC-historikk frå api.nasdaq.com. Endepunktet har ikkje
+# indeksar, berre ETF-ar og aksjar - og det er like greitt: ein ETF har
+# ekte volum, og volum er halve poenget med eit lysestake-mønster.
+#
+# QQQ følgjer Nasdaq-100. USO følgjer WTI, BNO følgjer Brent. Olje-ETF-ar
+# har litt rullekostnad over år, men over 1-5 dagar er det utan verknad.
+history_assets:
+  nasdaq:
+    label: QQQ (Nasdaq-100)
+    symbol: QQQ
+    assetclass: etf
+  wti:
+    label: USO (WTI-olje)
+    symbol: USO
+    assetclass: etf
+  brent:
+    label: BNO (Brent-olje)
+    symbol: BNO
+    assetclass: etf
+
+# --- Melding kvar morgon ---
+# Oslo Børs opnar 09:00. Denne kjem 20 minutt før, kvar handledag,
+# og seier opp, ned eller uklart. Ho er ein EIGEN kanal frå varsla:
+# ho senkar ikkje terskelen på dei, ho legg berre til ei fast melding
+# du veit kjem. Slik får du noko kvar dag utan at varsla blir slappare.
+briefing_enabled: true
+briefing_hour: 8
+briefing_minute: 40
+# Kor breitt vindauge rundt klokkeslettet vi godtek. launchd køyrer
+# kvart 20. minutt og treffer ikkje 08:40 på minuttet.
+briefing_window_minutes: 25
+
+# --- Varsel om at det er stort, men uklart ---
+# Vanleg tvil er stille. Det er heile prinsippet. Men når marknaden
+# rykkjer kraftig, heile verda skriv om det, og signala framleis sprikar,
+# så ER uvissa nyheita - og då er stille misvisande.
+# Alle fire vilkåra må vere oppfylte, og du får maks eitt i døgnet.
+uncertainty_alert_enabled: true
+uncertainty_max_confidence: 0.4      # Lunken tvil tel ikkje. Det må vere ekte uvisse.
+uncertainty_move_multiplier: 1.8     # Utslaget må vere 1,8x den vanlege terskelen.
+uncertainty_min_sources: 4           # Store ting blir dekte av mange aviser.
+
 # Prisrørsle i prosent som i seg sjølv gjer ei sak interessant.
 # Gjeld berre Nasdaq og olje - ikkje bakgrunnsbiletet.
 price_move_threshold_pct: 0.8
+
+# --- Kor mykje veg kjelda? ---
+# Ein Reuters-melding om eit OPEC-vedtak og eit Reddit-innlegg om det
+# same er ikkje same sak. Namna nedanfor blir matcha mot kjeldenamnet.
+source_tiers:
+  # Primærkjelder: dei publiserer sjølve hendinga, ikkje omtale av henne.
+  primary:
+    - Federal Reserve
+    - ECB Press
+    - BLS
+    - EIA
+    - Bank of England
+    - Bank of Japan
+  # Byrå og aviser med ansvarleg redaktør.
+  wire:
+    - Reuters
+    - Bloomberg
+    - AP Top News
+    - Financial Times
+    - WSJ
+    - BBC
+    - NYT
+    - CNBC
+    - MarketWatch
+    - Nikkei Asia
+    - Guardian
+    - Al Jazeera
+  # Aggregatorar, bloggar og forum. Kan vere fyrst, kan vere tull.
+  loose:
+    - ZeroHedge
+    - Seeking Alpha
+    - Investing
+    - Yahoo Finance
+    - Hacker News
 
 # Maks alder på ei sak før ho blir ignorert.
 max_news_age_hours: 12
@@ -201,6 +278,78 @@ feeds:
     url: https://e24.no/rss
   - name: NRK Urix
     url: https://www.nrk.no/urix/toppsaker.rss
+
+  # --- Asia: handlar medan Noreg søv, og set stemninga for opninga ---
+  - name: Nikkei Asia
+    url: https://asia.nikkei.com/rss/feed/nar
+  - name: SCMP Business
+    url: https://www.scmp.com/rss/92/feed
+  - name: Japan Times
+    url: https://www.japantimes.co.jp/feed/topstories/
+  - name: CNA Business
+    url: https://www.channelnewsasia.com/api/v1/rss-outbound-feed?_format=xml&category=6936
+  - name: Economic Times Markets
+    url: https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms
+
+  # --- Midtausten: der oljeforsyninga faktisk kan ryke ---
+  - name: Middle East Eye
+    url: https://www.middleeasteye.net/rss
+
+  # --- Energi (fleire) ---
+  - name: Offshore Energy
+    url: https://www.offshore-energy.biz/feed/
+  - name: Natural Gas Intel
+    url: https://www.naturalgasintel.com/feed/
+  - name: Reuters Energi
+    url: https://news.google.com/rss/search?q=when:6h+site:reuters.com+oil+OR+opec+OR+crude&hl=en-US&gl=US&ceid=US:en
+
+  # --- Sentralbankar (fleire) ---
+  - name: Bank of England
+    url: https://www.bankofengland.co.uk/rss/news
+  - name: Bank of Japan
+    url: https://www.boj.or.jp/en/rss/whatsnew.xml
+
+  # --- Halvleiarar og tech: SOX leier Nasdaq, så brikker er makro no ---
+  - name: Tom's Hardware
+    url: https://www.tomshardware.com/feeds/all
+  - name: TechCrunch
+    url: https://techcrunch.com/feed/
+  - name: The Register
+    url: https://www.theregister.com/headlines.atom
+  - name: Ars Technica
+    url: https://feeds.arstechnica.com/arstechnica/index
+  - name: Hacker News
+    url: https://hnrss.org/frontpage?points=150
+
+  # --- Målretta Google News-søk (desse døyr aldri, og dekkjer hol) ---
+  - name: GN Fed-rente
+    url: https://news.google.com/rss/search?q=when:6h+%22Federal+Reserve%22+interest+rate+decision&hl=en-US&gl=US&ceid=US:en
+  - name: GN CPI
+    url: https://news.google.com/rss/search?q=when:12h+CPI+inflation+report+data&hl=en-US&gl=US&ceid=US:en
+  - name: GN Jobbtal
+    url: https://news.google.com/rss/search?q=when:12h+nonfarm+payrolls+jobs+report&hl=en-US&gl=US&ceid=US:en
+  - name: GN OPEC-kutt
+    url: https://news.google.com/rss/search?q=when:12h+OPEC+production+cut+OR+quota&hl=en-US&gl=US&ceid=US:en
+  - name: GN Oljelager
+    url: https://news.google.com/rss/search?q=when:12h+crude+oil+inventories+EIA&hl=en-US&gl=US&ceid=US:en
+  - name: GN Hormuz
+    url: https://news.google.com/rss/search?q=when:24h+Strait+of+Hormuz+OR+Red+Sea+shipping&hl=en-US&gl=US&ceid=US:en
+  - name: GN Russland-olje
+    url: https://news.google.com/rss/search?q=when:12h+Russia+oil+sanctions+OR+exports&hl=en-US&gl=US&ceid=US:en
+  - name: GN Halvleiar-eksport
+    url: https://news.google.com/rss/search?q=when:12h+semiconductor+export+controls+China&hl=en-US&gl=US&ceid=US:en
+  - name: GN Nvidia
+    url: https://news.google.com/rss/search?q=when:12h+Nvidia+earnings+OR+guidance+OR+chips&hl=en-US&gl=US&ceid=US:en
+  - name: GN Renter
+    url: https://news.google.com/rss/search?q=when:6h+Treasury+yields+bond+market&hl=en-US&gl=US&ceid=US:en
+  - name: GN Kina-økonomi
+    url: https://news.google.com/rss/search?q=when:12h+China+economy+stimulus+OR+GDP&hl=en-US&gl=US&ceid=US:en
+  - name: GN Storm
+    url: https://news.google.com/rss/search?q=when:24h+hurricane+Gulf+of+Mexico+oil+production&hl=en-US&gl=US&ceid=US:en
+  - name: GN Raffineri
+    url: https://news.google.com/rss/search?q=when:24h+refinery+outage+OR+fire+OR+shutdown&hl=en-US&gl=US&ceid=US:en
+  - name: GN Sentralbank
+    url: https://news.google.com/rss/search?q=when:12h+central+bank+rate+ECB+OR+BOJ+OR+BOE&hl=en-US&gl=US&ceid=US:en
 
 # Reddit-kjelder (gratis JSON-endepunkt).
 reddit_subs:

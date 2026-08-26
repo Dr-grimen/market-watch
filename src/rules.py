@@ -31,10 +31,32 @@ def match_assets(item, keywords):
     return hits
 
 
-def score(item, assets_hit):
+TIER_POINTS = {"primary": 6, "wire": 3, "loose": -2}
+
+
+def source_tier(source, tiers):
+    """Kva slags kjelde er dette?
+
+    Fed sin eigen pressemelding og eit Reddit-innlegg om han er ikkje
+    same sak. Den fyrste ER hendinga; den andre er nokon som las om
+    henne. Når vi berre har plass til 12 saker hjå Claude, skal
+    primærkjeldene ha plassane.
+    """
+    if source.startswith("r/"):
+        return "loose"
+    for tier, names in (tiers or {}).items():
+        for name in names:
+            if name.lower() in source.lower():
+                return tier
+    return "normal"
+
+
+def score(item, assets_hit, tiers=None):
     """Enkel prioritering, så vi sender dei mest lovande sakene til Claude først."""
     text = _text_of(item)
     points = len(assets_hit) * 2
+
+    points += TIER_POINTS.get(source_tier(item.get("source", ""), tiers), 0)
 
     # Ferskt slår gammalt.
     age = item.get("age_hours")
@@ -57,11 +79,9 @@ def score(item, assets_hit):
     # Melder mange aviser same sak, er ho truleg reell og ikkje støy.
     points += min(item.get("source_count", 1) - 1, 4) * 2
 
-    # Reddit-støy skal ikkje slå ekte nyheiter.
-    if item.get("source", "").startswith("r/"):
-        points -= 2
-        if item.get("score", 0) > 2000:
-            points += 2
+    # Eit Reddit-innlegg må vere svært mykje oppstemt før det tel.
+    if item.get("source", "").startswith("r/") and item.get("score", 0) > 2000:
+        points += 2
 
     return points
 
@@ -107,6 +127,7 @@ def prefilter(items, config, state):
     """Nyheiter inn, kandidatar ut. Ingen kostnad."""
     keywords = config.get("keywords", {})
     noise_words = config.get("noise_words", [])
+    tiers = config.get("source_tiers", {})
     candidates = []
 
     for item in items:
@@ -123,7 +144,8 @@ def prefilter(items, config, state):
 
         item = dict(item)
         item["assets"] = assets_hit
-        item["rule_score"] = score(item, assets_hit)
+        item["tier"] = source_tier(item.get("source", ""), tiers)
+        item["rule_score"] = score(item, assets_hit, tiers)
         candidates.append(item)
 
     candidates.sort(key=lambda x: x["rule_score"], reverse=True)
@@ -138,6 +160,11 @@ def prefilter(items, config, state):
         duplicate_of = _is_near_duplicate(words, kept)
         if duplicate_of is not None:
             duplicate_of["source_count"] = duplicate_of.get("source_count", 1) + 1
+            # Melde ei betre kjelde det same, skal saka arve det truverdet.
+            rank = ["loose", "normal", "wire", "primary"]
+            if rank.index(item["tier"]) > rank.index(duplicate_of["tier"]):
+                duplicate_of["tier"] = item["tier"]
+                duplicate_of["source"] = item["source"]
             continue
         kept.append((words, item))
         selected.append(item)
@@ -153,3 +180,17 @@ def price_alarm(quotes, threshold_pct):
         if abs(quote.get("change_pct", 0.0)) >= threshold_pct:
             return True
     return False
+
+
+def max_abs_move(quotes):
+    """Største utslaget i prosent, uansett retning."""
+    if not quotes:
+        return 0.0
+    return max(abs(q.get("change_pct", 0.0)) for q in quotes)
+
+
+def heaviest_coverage(candidates):
+    """Kor mange aviser melder den mest omtalte saka?"""
+    if not candidates:
+        return 0
+    return max(item.get("source_count", 1) for item in candidates)

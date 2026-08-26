@@ -16,8 +16,8 @@ except ImportError:  # Python < 3.9
 
 from .config import load_config, env
 from .state import State
-from .sources import news, prices
-from . import rules, analyze, notify
+from .sources import news, prices, history
+from . import rules, analyze, notify, technicals
 
 
 def now_local(tzname):
@@ -45,6 +45,8 @@ def resolve_mode(local_time, requested):
 
 def should_run(local_time, mode):
     """Ikkje bruk pengar på tidspunkt der ingenting skjer."""
+    if mode == "briefing":
+        return local_time.weekday() < 5
     # Helg: Nasdaq er stengd, olje-futures opnar søndag kveld.
     if local_time.weekday() == 5:            # laurdag
         return False
@@ -54,6 +56,60 @@ def should_run(local_time, mode):
     if 1 <= local_time.hour < 7:
         return False
     return True
+
+
+def briefing_due(local_time, config, state):
+    """Er dette køyringa som skal sende morgonmeldinga?
+
+    launchd køyrer kvart 20. minutt og treffer aldri 08:40 på minuttet,
+    så vi opnar eit vindauge rundt klokkeslettet i staden. Sperra i
+    state sørgjer for at det berre blir éi melding sjølv om to
+    køyringar landar innanfor same vindauge.
+    """
+    if not config.get("briefing_enabled", True):
+        return False
+    if local_time.weekday() >= 5:
+        return False
+
+    target = local_time.hour * 60 + local_time.minute
+    wanted = config.get("briefing_hour", 8) * 60 + config.get("briefing_minute", 40)
+    if abs(target - wanted) > config.get("briefing_window_minutes", 25):
+        return False
+    return state.briefing_due(local_time.strftime("%Y-%m-%d"))
+
+
+def build_briefing(verdict, price_summary, world_summary, local_time):
+    """Meldinga du får kvar morgon, 20 minutt før Oslo opnar."""
+    direction = verdict.get("direction", "uklart")
+    heading = {
+        "opp": "OPP",
+        "ned": "NED",
+    }.get(direction, "UKLART - ingen retning å stole på")
+
+    text = verdict.get("message") or verdict.get("reasoning", "")
+
+    # Ikkje skriv "om 20 minutt" når det er 40. launchd køyrer kvart 20.
+    # minutt og treffer ikkje klokkeslettet, så vi reknar det ut.
+    minutter = (9 * 60) - (local_time.hour * 60 + local_time.minute)
+    naar = ("om %d min" % minutter) if 0 < minutter <= 90 else "snart"
+
+    return (
+        "God morgon. Oslo opnar %s.\n"
+        "RETNING: %s (%d %% sikker)\n\n"
+        "%s\n\n"
+        "Nasdaq og olje no: %s\n\n"
+        "%s\n\n"
+        "Dette er ei skildring av marknaden, ikkje eit råd. Avgjerda er di.\n"
+        "%s"
+    ) % (
+        naar,
+        heading,
+        int(round(verdict.get("confidence", 0) * 100)),
+        text,
+        price_summary or "ingen prisdata",
+        world_summary or "",
+        local_time.strftime("%d.%m %H:%M"),
+    )
 
 
 def build_message(verdict, price_summary, local_time):
@@ -113,16 +169,109 @@ def _maybe_heartbeat(state, config, local_time, price_summary, dry_run):
         return
 
     runs, items, alerts = state.record_heartbeat()
+    names = [f.get("name", "") for f in config.get("feeds", [])]
+    dead = state.dead_feeds(names)
+    kjelder = (
+        "Alle %d kjelder leverer." % len(names) if not dead
+        else "Desse har vore tomme i ei veke og bør sjekkast: %s"
+             % ", ".join(dead[:8])
+    )
     text = (
         "market-watch lever.\n"
         "Siste veka: %d køyringar, %d saker lesne, %d varsel sendt.\n"
-        "%s" % (runs, items, alerts, price_summary)
+        "%s\n"
+        "%s" % (runs, items, alerts, kjelder, price_summary)
     )
     if dry_run:
         print("[main] DRY RUN - ville sendt livsteikn:\n%s" % text)
     else:
         notify.send(text)
         print("[main] livsteikn sendt")
+
+
+def _maybe_uncertainty_alert(state, config, local_time, verdict, candidates,
+                             all_quotes, price_summary, dry_run):
+    """Varsel om at det er STORT og at ingen veit kva veg.
+
+    Portane her er med vilje strengare enn dei for eit vanleg varsel.
+    Ei melding om uvisse er lett å sende for ofte, og gjer ho det, blir
+    ho like verdilaus som eit varsel du ikkje kan stole på. Alle fire
+    vilkåra må vere oppfylte, og du får maks eitt slikt i døgnet.
+    """
+    if not config.get("uncertainty_alert_enabled", True):
+        return
+    if local_time.hour < 7 or local_time.hour >= 23:
+        return
+    if not state.uncertainty_due(local_time.strftime("%Y-%m-%d")):
+        return
+
+    conf = float(verdict.get("confidence", 0.0))
+    if conf > config.get("uncertainty_max_confidence", 0.4):
+        return  # Lunken tvil er ikkje dramatisk uvisse.
+
+    move = rules.max_abs_move(all_quotes)
+    trigger = (config.get("price_move_threshold_pct", 0.8)
+               * config.get("uncertainty_move_multiplier", 1.8))
+    if move < trigger:
+        return  # Ingenting rører seg. Då er uvissa berre ein roleg dag.
+
+    coverage = rules.heaviest_coverage(candidates)
+    if coverage < config.get("uncertainty_min_sources", 4):
+        return  # Store ting blir dekte av mange. Er dei ikkje det, er det ikkje stort.
+
+    message = (
+        "STOR RØRSLE - RETNINGA ER UKLAR\n\n"
+        "Det er %.1f %% utslag i marknaden og saka er dekt av %d kjelder, "
+        "men signala peikar ulike vegar.\n\n"
+        "%s\n\n"
+        "%s\n\n"
+        "Du får denne fordi det skjer noko stort, ikkje fordi det finst eit "
+        "svar. Dette er ei skildring, ikkje eit råd.\n%s"
+    ) % (move, coverage, verdict.get("reasoning", ""), price_summary,
+         local_time.strftime("%d.%m %H:%M"))
+
+    if dry_run:
+        print("[main] DRY RUN - ville sendt uvisse-varsel:\n%s" % message)
+        return
+    if notify.send(message):
+        state.record_uncertainty(local_time.strftime("%Y-%m-%d"))
+        print("[main] uvisse-varsel sendt (%.1f %% utslag, %d kjelder)" % (move, coverage))
+
+
+def _send_briefing(state, config, local_time, candidates, price_summary,
+                   world_summary, technical_summary, api_key, dry_run):
+    """Sender morgonmeldinga. Feilar ho, blir det stille - ikkje eit krasj."""
+    today = local_time.strftime("%Y-%m-%d")
+    if not api_key:
+        print("[main] morgonmelding: manglar API-nøkkel - hoppar over")
+        return
+
+    verdict = analyze.evaluate(
+        candidates, price_summary,
+        context_note=("Oslo Børs opnar om 20 minutt. Den amerikanske børsen "
+                      "opnar 15:30 norsk tid. Oppsummer kva som ligg føre no."),
+        api_key=api_key,
+        world_summary=world_summary,
+        technical_summary=technical_summary,
+        system_prompt=analyze.BRIEFING_PROMPT,
+    )
+    if verdict is None:
+        print("[main] morgonmelding: vurderinga feila - inga melding")
+        return
+    if verdict.get("suspicious_content"):
+        print("[main] morgonmelding: mistenkeleg innhald i materialet - inga melding")
+        return
+
+    message = build_briefing(verdict, price_summary, world_summary, local_time)
+    if dry_run:
+        print("[main] DRY RUN - ville sendt morgonmelding:\n%s" % message)
+        return
+    if notify.send(message):
+        state.record_briefing(today)
+        print("[main] morgonmelding sendt (%s, %.0f %%)" % (
+            verdict.get("direction"), verdict.get("confidence", 0) * 100))
+    else:
+        print("[main] morgonmelding: sending feila")
 
 
 def run(mode="auto", dry_run=False):
@@ -163,9 +312,29 @@ def run(mode="auto", dry_run=False):
         print("[main] verda: %d tal, størst rørsle: %s" % (
             len(world_flat), prices.summarize(movers) or "alt roleg"))
 
+    # Chart og statistikk (gratis - historikken ligg i cache på disk)
+    technical_summary = ""
+    tech_edge = None
+    reports = []
+    for key, spec in config.get("history_assets", {}).items():
+        bars = history.fetch_daily(spec.get("symbol", key), spec.get("assetclass", "etf"))
+        report = technicals.analyse(bars, spec.get("label", key))
+        if report:
+            reports.append(report)
+    if reports:
+        technical_summary = "\n".join(technicals.format_report(r) for r in reports)
+        tech_edge = technicals.strongest_edge(reports)
+        print("[main] chart: %d instrument | statistisk kant: %s" % (
+            len(reports), tech_edge[2] if tech_edge else "ingen over støygrensa"))
+
     # 2. Nyheiter (gratis)
     items = news.fetch_all(config)
     print("[main] henta %d saker" % len(items))
+
+    # Kva kjelder leverte? Ein feed som stille døyr er usynleg utan dette.
+    delivered = set(item.get("source", "") for item in items)
+    for feed in config.get("feeds", []):
+        state.record_feed_result(feed.get("name", ""), feed.get("name") in delivered)
 
     # Helsesjekk: får vi korkje prisar eller nyheiter, er noko gale
     # med sjølve verktøyet - ikkje med marknaden.
@@ -182,6 +351,16 @@ def run(mode="auto", dry_run=False):
     candidates = rules.prefilter(items, config, state)
     big_move = rules.price_alarm(all_quotes, config.get("price_move_threshold_pct", 0.8))
     print("[main] %d kandidatar etter filter (stor prisrørsle: %s)" % (len(candidates), big_move))
+
+    api_key = env("ANTHROPIC_API_KEY")
+
+    # 3b. Morgonmeldinga. Eigen veg gjennom systemet: ho går utanom
+    # terskelen, cooldown og dagsgrensa, fordi ho ikkje er eit varsel.
+    # Ho er den faste meldinga du har bede om, og "uklart" er eit gyldig
+    # svar som skal sendast.
+    if mode == "briefing" or briefing_due(local_time, config, state):
+        _send_briefing(state, config, local_time, candidates, price_summary,
+                       world_summary, technical_summary, api_key, dry_run)
 
     if not candidates and not big_move:
         print("[main] ingenting å vurdere - stille")
@@ -204,14 +383,19 @@ def run(mode="auto", dry_run=False):
     if big_move:
         context_note += " Det er allereie ei stor prisrørsle i gang."
 
-    api_key = env("ANTHROPIC_API_KEY")
     if not api_key:
         print("[main] ANTHROPIC_API_KEY manglar - kan ikkje vurdere")
         state.save()
         return 1
 
+    if tech_edge:
+        context_note += (
+            " Teknisk statistikk med tyngde: %s. Dette er bakgrunn, ikkje "
+            "eit varsel i seg sjølv." % tech_edge[2])
+
     verdict = analyze.evaluate(candidates, price_summary, context_note, api_key,
-                               world_summary=world_summary)
+                               world_summary=world_summary,
+                               technical_summary=technical_summary)
     if verdict is None:
         _handle_failure(state, config, "Claude-kallet feila", dry_run)
         state.save()
@@ -231,6 +415,12 @@ def run(mode="auto", dry_run=False):
         return 0
 
     if direction == "uklart" or asset == "ingen":
+        # Vanleg tvil er stille. Det er sjølve prinsippet verktøyet står på.
+        # Men det finst eitt unntak: når marknaden rører seg kraftig, heile
+        # verda skriv om det, OG signala framleis sprikar - då er sjølve
+        # uvissa nyheita, og stille ville vore misvisande.
+        _maybe_uncertainty_alert(state, config, local_time, verdict, candidates,
+                                 all_quotes, price_summary, dry_run)
         print("[main] uklar retning - stille (dette er meininga)")
         state.save()
         return 0
@@ -320,8 +510,10 @@ def doctor():
 
 def main():
     parser = argparse.ArgumentParser(description="Overvakar Nasdaq og olje")
-    parser.add_argument("--mode", choices=["auto", "normal", "preopen"], default="auto",
-                        help="auto les modus ut av klokka (standard)")
+    parser.add_argument("--mode", choices=["auto", "normal", "preopen", "briefing"],
+                        default="auto",
+                        help="auto les modus ut av klokka (standard). "
+                             "briefing tvingar fram morgonmeldinga no.")
     parser.add_argument("--dry-run", action="store_true",
                         help="Vurder alt, men ikkje send melding")
     parser.add_argument("--test-notify", action="store_true",
