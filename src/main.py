@@ -114,10 +114,13 @@ def build_briefing(verdict, price_summary, chart_summary, local_time, threshold)
     else:
         naar = "sein - Oslo opna for %d t sidan" % (-minutter // 60)
 
+    # chart_summary blir med vilje IKKJE skriven ut. Statistikken er
+    # rekna ut, han ligg i materialet modellen les, og han påverkar
+    # vurderinga - men Sondre bad om å sleppe å sjå han. Konklusjonen
+    # skal ut; råmaterialet skal ikkje.
     return (
         "NASDAQ - %s\n"
         "SIKKER? %s\n\n"
-        "%s\n\n"
         "%s\n\n"
         "%s\n\n"
         "Skildring av marknaden, ikkje eit råd.\n"
@@ -127,7 +130,6 @@ def build_briefing(verdict, price_summary, chart_summary, local_time, threshold)
         svar,
         verdict.get("message") or verdict.get("reasoning", ""),
         price_summary or "ingen prisdata",
-        chart_summary or "",
         local_time.strftime("%d.%m %H:%M"),
     )
 
