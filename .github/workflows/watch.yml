@@ -24,6 +24,11 @@ on:
         description: "Ikkje send melding, berre vis kva som ville blitt sendt"
         type: boolean
         default: true
+      mode:
+        description: "briefing tvingar fram morgonmeldinga (for testing)"
+        type: choice
+        options: [auto, briefing, preopen, normal]
+        default: auto
 
 concurrency:
   group: market-watch
@@ -68,8 +73,9 @@ jobs:
           TWILIO_FROM_NUMBER: ${{ secrets.TWILIO_FROM_NUMBER }}
           ALERT_PHONE_NUMBER: ${{ secrets.ALERT_PHONE_NUMBER }}
         run: |
+          MODE="${{ github.event.inputs.mode }}"
+          ARGS="--mode ${MODE:-auto}"
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
-            python -m src.main --dry-run
-          else
-            python -m src.main
+            ARGS="$ARGS --dry-run"
           fi
+          python -m src.main $ARGS
