@@ -230,15 +230,17 @@ def _maybe_uncertainty_alert(state, config, local_time, verdict, candidates,
     if coverage < config.get("uncertainty_min_sources", 4):
         return  # Store ting blir dekte av mange. Er dei ikkje det, er det ikkje stort.
 
+    grunn = (verdict.get("reasoning") or "").strip().split(". ")[0]
+    if grunn and not grunn.endswith("."):
+        grunn += "."
+
     message = (
-        "STOR RØRSLE - RETNINGA ER UKLAR\n\n"
-        "Det er %.1f %% utslag i marknaden og saka er dekt av %d kjelder, "
-        "men signala peikar ulike vegar.\n\n"
+        "Halla Sjef 👋\n"
+        "Noko stort skjer - men eg veit ikkje kva veg.\n\n"
+        "%.1f %% utslag, %d kjelder skriv om det, og signala sprikar.\n"
         "%s\n\n"
-        "%s\n\n"
-        "Du får denne fordi det skjer noko stort, ikkje fordi det finst eit "
-        "svar. Dette er ei skildring, ikkje eit råd.\n%s"
-    ) % (move, coverage, verdict.get("reasoning", ""), price_summary,
+        "%s\n%s"
+    ) % (move, coverage, grunn, price_summary,
          local_time.strftime("%d.%m %H:%M"))
 
     if dry_run:
