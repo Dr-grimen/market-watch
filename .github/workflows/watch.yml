@@ -11,9 +11,11 @@ on:
     # handelsdagen og stenginga.
     - cron: "*/20 11-21 * * 1-5"
 
-    # Morgon: kvar time. Her skjer det sjeldan noko som hastar, men
-    # europeiske og asiatiske nyheiter kan setje tonen for dagen.
-    - cron: "0 6-10 * * 1-5"
+    # Morgon: kvart 20. minutt fra 06 til 09 UTC. Morgonmeldinga skal ut
+    # 08:40 norsk tid, og det er 06:40 UTC om sommaren og 07:40 om
+    # vinteren. Vi dekkjer begge, og koden sjolv slepp berre den rette
+    # gjennom - state.json hugsar at ho alt er sendt.
+    - cron: "*/20 6-9 * * 1-5"
 
   # Køyr manuelt frå Actions-fana for å teste.
   workflow_dispatch:
@@ -43,11 +45,14 @@ jobs:
       - name: Installer avhengigheiter
         run: pip install -r requirements.txt
 
-      # Hugsar kva som allereie er varsla om, så du ikkje får dobbelt opp.
+      # Hugsar kva som alt er varsla om, så du ikkje får dobbelt opp -
+      # og chart-historikken, så vi ikkje hentar 2000 dagsbarar kvar gong.
       - name: Hent tidlegare tilstand
         uses: actions/cache@v4
         with:
-          path: state.json
+          path: |
+            state.json
+            cache
           key: market-watch-state-${{ github.run_id }}
           restore-keys: |
             market-watch-state-

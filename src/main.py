@@ -71,9 +71,17 @@ def briefing_due(local_time, config, state):
     if local_time.weekday() >= 5:
         return False
 
-    target = local_time.hour * 60 + local_time.minute
+    now = local_time.hour * 60 + local_time.minute
     wanted = config.get("briefing_hour", 8) * 60 + config.get("briefing_minute", 40)
-    if abs(target - wanted) > config.get("briefing_window_minutes", 25):
+    if now < wanted - config.get("briefing_window_minutes", 25):
+        return False
+
+    # Etterslep. Macen søv med loket att, og då køyrer ingenting -
+    # verken klokka 08:40 eller nokon annan gong. Fyrste køyring etter
+    # at han vaknar skal difor sende meldinga likevel, så lenge dagen
+    # framleis har noko igjen. Ei melding klokka 11 er langt betre enn
+    # ingen melding, så lenge ho seier ærleg at ho er sein.
+    if now > config.get("briefing_latest_hour", 15) * 60:
         return False
     return state.briefing_due(local_time.strftime("%Y-%m-%d"))
 
@@ -88,13 +96,22 @@ def build_briefing(verdict, price_summary, world_summary, local_time):
 
     text = verdict.get("message") or verdict.get("reasoning", "")
 
-    # Ikkje skriv "om 20 minutt" når det er 40. launchd køyrer kvart 20.
-    # minutt og treffer ikkje klokkeslettet, så vi reknar det ut.
+    # Ikkje påstå at Oslo opnar om 20 minutt når klokka er 11 og han
+    # opna for to timar sidan. Meldinga kjem når maskina er vaken, og
+    # det er ikkje alltid når han skulle.
     minutter = (9 * 60) - (local_time.hour * 60 + local_time.minute)
-    naar = ("om %d min" % minutter) if 0 < minutter <= 90 else "snart"
+    if minutter > 90:
+        opning = "God morgon. Oslo opnar om %d min." % minutter
+    elif minutter > 0:
+        opning = "God morgon. Oslo opnar om %d min." % minutter
+    elif minutter > -60:
+        opning = "God morgon. Oslo har akkurat opna."
+    else:
+        opning = ("God morgon. Denne kjem seint - Oslo opna for %d timar "
+                  "sidan (Macen sov). Biletet under er frå no." % (-minutter // 60))
 
     return (
-        "God morgon. Oslo opnar %s.\n"
+        "%s\n"
         "RETNING: %s (%d %% sikker)\n\n"
         "%s\n\n"
         "Nasdaq og olje no: %s\n\n"
@@ -102,7 +119,7 @@ def build_briefing(verdict, price_summary, world_summary, local_time):
         "Dette er ei skildring av marknaden, ikkje eit råd. Avgjerda er di.\n"
         "%s"
     ) % (
-        naar,
+        opning,
         heading,
         int(round(verdict.get("confidence", 0) * 100)),
         text,
