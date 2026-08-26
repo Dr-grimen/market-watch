@@ -719,3 +719,92 @@ def strongest_edge(reports):
                             _pct(st["base"]), horizon, st["n"], st["z"], note),
                     )
     return best
+
+
+# ------------------------------------------------------------ gap-statistikk
+
+# Bøttene er valde slik at kvar av dei har nok dagar til å seie noko,
+# og slik at grensene ligg der ei rørsle byrjar å bety noko praktisk.
+GAP_BUCKETS = [
+    (-99.0, -1.0, "under -1 %"),
+    (-1.0, -0.3, "-1 % til -0,3 %"),
+    (-0.3, 0.3, "flatt"),
+    (0.3, 1.0, "+0,3 % til +1 %"),
+    (1.0, 99.0, "over +1 %"),
+]
+
+
+def gap_statistics(bars):
+    """Kva ei rørsle over natta faktisk seier om dagen.
+
+    Dette er den viktigaste tabellen i heile verktøyet, fordi han skil
+    to ting som ser like ut og ikkje er det:
+
+      "dagen enda opp"      - målt frå går-slutt til i dag-slutt
+      "det gjekk vidare opp" - målt frå OPNINGA til slutt
+
+    Etter eit gap opp over 1 % endar 88 % av dagane høgare enn dagen før.
+    Det ser ut som eit fantastisk signal. Det er ikkje eit signal i det
+    heile - det er aritmetikk. Gapet har alt skjedd før du kan handle på
+    det. Frå opninga og utover er treffprosenten 59 %, altså nesten
+    nøyaktig basisraten.
+
+    Så: rørsla over natta fortel deg kvar marknaden OPNAR. Ho fortel deg
+    ingenting om kva han gjer etterpå. Blandar du dei to saman, får du
+    eit verktøy som verkar treffsikkert og er verdilaust.
+    """
+    if not bars or len(bars) < 200:
+        return None
+
+    rows = []
+    for i in range(1, len(bars)):
+        prev_close = bars[i - 1]["close"]
+        opening = bars[i]["open"]
+        closing = bars[i]["close"]
+        if not prev_close or not opening:
+            continue
+        rows.append((
+            (opening / prev_close - 1.0) * 100.0,   # gapet
+            closing > opening,                       # vidare opp frå opning
+            closing > prev_close,                    # dagen totalt opp
+        ))
+    if not rows:
+        return None
+
+    base = sum(1 for r in rows if r[1]) / float(len(rows))
+
+    buckets = []
+    for low, high, label in GAP_BUCKETS:
+        subset = [r for r in rows if low <= r[0] < high]
+        if len(subset) < 25:
+            continue
+        n = float(len(subset))
+        buckets.append({
+            "label": label, "low": low, "high": high, "n": int(n),
+            "further_up": sum(1 for r in subset if r[1]) / n,
+            "day_up": sum(1 for r in subset if r[2]) / n,
+        })
+    return {"base": base, "buckets": buckets, "n": len(rows)}
+
+
+def gap_context(stats, current_move_pct, label):
+    """Kva den faktiske rørsla i natt tyder, med tal bak."""
+    if not stats or current_move_pct is None:
+        return ""
+
+    match = None
+    for bucket in stats["buckets"]:
+        if bucket["low"] <= current_move_pct < bucket["high"]:
+            match = bucket
+            break
+    if match is None:
+        return ""
+
+    retning = "opp" if current_move_pct >= 0 else "ned"
+    return (
+        "%s: rører seg %+.2f %% no (bøtta '%s', %d liknande dagar i historikken).\n"
+        "  Marknaden opnar truleg %s - det er alt i prisen.\n"
+        "  Men frå OPNINGA og utover gjekk det opp %.0f %% av gongene, mot "
+        "basis %.0f %%. Rørsla i natt seier altså lite om resten av dagen."
+    ) % (label, current_move_pct, match["label"], match["n"], retning,
+         match["further_up"] * 100.0, stats["base"] * 100.0)

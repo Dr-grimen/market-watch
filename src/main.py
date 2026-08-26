@@ -238,6 +238,23 @@ def _maybe_uncertainty_alert(state, config, local_time, verdict, candidates,
         print("[main] uvisse-varsel sendt (%.1f %% utslag, %d kjelder)" % (move, coverage))
 
 
+# Kva historikk-instrumentet svarar til blant dei live prisane. QQQ
+# følgjer Nasdaq, USO og BNO følgjer olja.
+_LIVE_MAP = {"nasdaq": "nasdaq", "wti": "oil", "brent": "oil"}
+
+
+def _live_move(quotes_by_asset, history_key):
+    """Rørsla no i det aktivumet historikken gjeld.
+
+    Vi tek den største rørsla i gruppa: futures og spot spriker litt, og
+    det er det kraftigaste utslaget som seier noko om opninga.
+    """
+    quotes = quotes_by_asset.get(_LIVE_MAP.get(history_key, "")) or []
+    if not quotes:
+        return None
+    return max((q.get("change_pct", 0.0) for q in quotes), key=abs)
+
+
 def _send_briefing(state, config, local_time, candidates, price_summary,
                    world_summary, technical_summary, calendar_summary,
                    api_key, dry_run):
@@ -326,6 +343,22 @@ def run(mode="auto", dry_run=False):
     if reports:
         technical_summary = "\n".join(technicals.format_report(r) for r in reports)
         tech_edge = technicals.strongest_edge(reports)
+
+        # Kva rørsla i natt faktisk tyder. Dette er det næraste vi kjem
+        # eit ærleg svar på "opnar det opp?" - og på kvifor det spørsmålet
+        # ikkje er det same som "endar dagen opp?".
+        gap_lines = []
+        for key, spec in config.get("history_assets", {}).items():
+            bars = history.fetch_daily(spec.get("symbol", key),
+                                       spec.get("assetclass", "etf"))
+            stats = technicals.gap_statistics(bars)
+            live = _live_move(quotes_by_asset, key)
+            text = technicals.gap_context(stats, live, spec.get("label", key))
+            if text:
+                gap_lines.append(text)
+        if gap_lines:
+            technical_summary += ("\n\nRØRSLE OVER NATTA - KVA HO FAKTISK SEIER:\n"
+                                  + "\n".join(gap_lines))
         print("[main] chart: %d instrument | statistisk kant: %s" % (
             len(reports), tech_edge[2] if tech_edge else "ingen over støygrensa"))
 

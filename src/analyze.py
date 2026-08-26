@@ -62,6 +62,22 @@ på Nasdaq neste dag i praksis ukjend uansett kva anna du ser.
 - Står det ingenting på kalenderen, er det eit argument for at ein roleg dag \
 faktisk ER roleg - og ikkje stille før noko du har oversett.
 
+RØRSLE OVER NATTA - DEN VIKTIGASTE FELLA:
+Du får ein tabell over kva ei rørsle over natta historisk har tydd.
+
+Skil skarpt mellom to ting som ser like ut:
+- KVAR MARKNADEN OPNAR. Er futures opp 1 %, opnar marknaden opp. Det er
+nesten sikkert - men det er aritmetikk, ikkje spådom. Rørsla har alt
+skjedd, og brukaren kan ikkje handle på henne.
+- KVA HAN GJER ETTERPÅ. Frå opninga og utover er treffprosenten rundt
+50-55 % same kor stort gapet var. Rørsla i natt seier så godt som
+INGENTING om resten av dagen.
+
+Difor: du skal aldri gi høg confidence på "opp i dag" berre fordi futures
+er opp. Skriv heller at marknaden truleg opnar opp, og at retninga
+derifrå er open. Blandar du dei to saman, blir verktøyet verdilaust
+samstundes som det ser treffsikkert ut.
+
 CHARTLESING - KVA SOM FAKTISK HELD:
 Du får trend, RSI, MACD, ATR, Bollinger og lysestake-mønster, og for kvart \
 mønster kva som HISTORISK hende etterpå i akkurat det instrumentet.
