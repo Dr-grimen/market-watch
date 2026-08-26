@@ -17,7 +17,7 @@ except ImportError:  # Python < 3.9
 from .config import load_config, env
 from .state import State
 from .sources import news, prices, history, calendar as market_calendar
-from . import rules, analyze, notify, technicals
+from . import rules, analyze, notify, technicals, calibration
 
 
 def now_local(tzname):
@@ -198,8 +198,9 @@ def _maybe_heartbeat(state, config, local_time, price_summary, dry_run):
     text = (
         "market-watch lever.\n"
         "Siste veka: %d køyringar, %d saker lesne, %d varsel sendt.\n"
-        "%s\n"
-        "%s" % (runs, items, alerts, kjelder, price_summary)
+        "%s\n\n"
+        "%s\n\n"
+        "%s" % (runs, items, alerts, kjelder, calibration.report(), price_summary)
     )
     if dry_run:
         print("[main] DRY RUN - ville sendt livsteikn:\n%s" % text)
@@ -276,7 +277,7 @@ def _live_move(quotes_by_asset, history_key):
 
 def _send_briefing(state, config, local_time, candidates, price_summary,
                    world_summary, technical_summary, calendar_summary,
-                   chart_summary, api_key, dry_run):
+                   chart_summary, quotes_by_asset, api_key, dry_run):
     """Sender morgonmeldinga. Feilar ho, blir det stille - ikkje eit krasj."""
     today = local_time.strftime("%Y-%m-%d")
     if not api_key:
@@ -299,6 +300,13 @@ def _send_briefing(state, config, local_time, candidates, price_summary,
     if verdict.get("suspicious_content"):
         print("[main] morgonmelding: mistenkeleg innhald i materialet - inga melding")
         return
+
+    nasdaq_no = None
+    for q in (quotes_by_asset.get("nasdaq") or []):
+        nasdaq_no = q.get("price")
+        break
+    calibration.record(today, verdict.get("direction"),
+                       verdict.get("confidence", 0.0), nasdaq_no, "briefing")
 
     message = build_briefing(verdict, price_summary, chart_summary, local_time,
                              config.get("confidence_threshold", 0.75))
@@ -398,6 +406,14 @@ def run(mode="auto", dry_run=False):
         print("[main] kalenderen svarte ikkje (%s) - held fram utan"
               % type(exc).__name__)
 
+    # Døm gårsdagens vurderingar mot det som faktisk hende. Utan dette
+    # er eit confidence-tal berre ein påstand modellen skriv om seg sjølv.
+    if reports:
+        avgjort = calibration.settle(history.fetch_daily(
+            config.get("history_assets", {}).get("nasdaq", {}).get("symbol", "QQQ")))
+        if avgjort:
+            print("[main] kalibrering: dømde %d gamle vurderingar" % avgjort)
+
     # 2. Nyheiter (gratis)
     items = news.fetch_all(config)
     print("[main] henta %d saker" % len(items))
@@ -432,7 +448,7 @@ def run(mode="auto", dry_run=False):
     if mode == "briefing" or briefing_due(local_time, config, state):
         _send_briefing(state, config, local_time, candidates, price_summary,
                        world_summary, technical_summary, calendar_summary,
-                       chart_summary, api_key, dry_run)
+                       chart_summary, quotes_by_asset, api_key, dry_run)
 
     if not candidates and not big_move:
         print("[main] ingenting å vurdere - stille")
