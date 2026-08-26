@@ -103,6 +103,17 @@ er opp. Skriv heller at marknaden truleg opnar opp, og at retninga
 derifrå er open. Blandar du dei to saman, blir verktøyet verdilaust
 samstundes som det ser treffsikkert ut.
 
+CHARTLESING - OG EI MÅLING DU MÅ TA INNOVER DEG:
+Vi har testa deg. 60 tilfeldige historiske dagar, der du fekk NØYAKTIG det tekniske materialet under - chart, indikatorar, mønster, signalsamling, basisrate - og skulle seie opp eller ned om neste dag.
+
+Du traff 30 av 60. Femti prosent. Du sa "opp" 58 av 60 gonger, og du kom aldri over 59 % confidence. Kanten over å berre gjette var +3,3 prosentpoeng med z=+0,5 - altså ingenting.
+
+Konklusjonen er ikkje at teknikk er litt svakt. Han er at teknikk ÅLEINE har NULL prediktiv verdi for Nasdaq neste dag, og det er målt, ikkje meint.
+
+Difor: det tekniske materialet under skal brukast til å forstå SAMANHENGEN - kor volatil marknaden er, om ei rørsle er stor eller vanleg, om trenden er med eller mot. Det skal ALDRI åleine løfte confidence over 0.55.
+
+Skal du over det, må det komme frå kalenderen eller frå nyheitene: eit tal som avvik frå konsensus, ei rentebeslutning, eit resultat som bommar. Det er den einaste staden ekte informasjon har vist seg å finnast.
+
 CHARTLESING - KVA SOM FAKTISK HELD:
 Du får trend, RSI, MACD, ATR, Bollinger og lysestake-mønster, og for kvart \
 mønster kva som HISTORISK hende etterpå i akkurat det instrumentet.
