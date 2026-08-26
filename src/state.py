@@ -32,6 +32,8 @@ class State(object):
         self.week_alerts = data.get("week_alerts", 0)
         self.last_briefing_date = data.get("last_briefing_date", "")
         self.last_uncertainty_date = data.get("last_uncertainty_date", "")
+        self.reported_events = data.get("reported_events", {})  # "dato|namn" -> tid
+        self.move_marks = data.get("move_marks", {})            # dato -> største nivå meldt
         self.lean_log = data.get("lean_log", [])          # tidspunkt
         self.last_lean = data.get("last_lean", {})        # retning -> tidspunkt
 
@@ -69,6 +71,8 @@ class State(object):
             "week_alerts": self.week_alerts,
             "last_briefing_date": self.last_briefing_date,
             "last_uncertainty_date": self.last_uncertainty_date,
+            "reported_events": self.reported_events,
+            "move_marks": self.move_marks,
             "lean_log": self.lean_log,
             "last_lean": self.last_lean,
             "feed_health": self.feed_health,
@@ -133,6 +137,23 @@ class State(object):
 
     def record_briefing(self, today):
         self.last_briefing_date = today
+
+    def event_reported(self, today, name):
+        return ("%s|%s" % (today, name)) in self.reported_events
+
+    def record_event(self, today, name):
+        # Berre dagens merke blir haldne - resten er gamle nyheiter.
+        self.reported_events = dict(
+            (k, v) for k, v in self.reported_events.items() if k.startswith(today))
+        self.reported_events["%s|%s" % (today, name)] = time.time()
+
+    def move_mark(self, today):
+        """Største rørslenivå vi alt har meldt om i dag."""
+        return float(self.move_marks.get(today, 0.0))
+
+    def record_move(self, today, level):
+        # Nullstill for nye dagar, så fila ikkje veks.
+        self.move_marks = {today: float(level)}
 
     def leans_today(self):
         cutoff = time.time() - 60 * 60 * 24

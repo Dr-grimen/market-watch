@@ -266,6 +266,89 @@ def _live_move(quotes_by_asset, history_key):
     return max((q.get("change_pct", 0.0) for q in quotes), key=abs)
 
 
+def _maybe_event_alert(state, config, local_time, pending_before, kalender,
+                       price_summary, dry_run):
+    """Talet kom. Dette er RAPPORT, ikkje spådom.
+
+    Om morgonen står det at Core PCE kjem klokka 14:30. Klokka 14:32
+    finst det eit faktisk tal, og då er den viktigaste opplysninga i
+    heile døgnet tilgjengeleg - ikkje som ei vurdering, men som eit
+    faktum. Sondre skal ha det med ein gong, og han skal ha det utan
+    at nokon har gjetta på kva det tyder.
+    """
+    if not config.get("event_alert_enabled", True):
+        return
+    today = local_time.strftime("%Y-%m-%d")
+
+    for event in (kalender.get("economic") or []):
+        if not event["actual"]:
+            continue
+        if market_calendar._priority(event["name"]) != 0:
+            continue          # berre dei tyngste tala
+        if state.event_reported(today, event["name"]):
+            continue
+
+        avvik = ""
+        if event["consensus"]:
+            avvik = " - venta var %s" % event["consensus"]
+        message = "Halla Sjef 👋\n%s kom inn på %s%s.\n\n%s\n%s" % (
+            event["name"], event["actual"], avvik,
+            price_summary, local_time.strftime("%d.%m %H:%M"))
+
+        if dry_run:
+            print("[main] DRY RUN - ville sendt tal-melding:\n%s" % message)
+            state.record_event(today, event["name"])
+            continue
+        if notify.send(message):
+            state.record_event(today, event["name"])
+            print("[main] tal-melding sendt: %s = %s" % (event["name"], event["actual"]))
+
+
+def _maybe_move_alert(state, config, local_time, all_quotes, dry_run):
+    """Det rører seg NO. Også rein rapport.
+
+    Ingen påstand om kva som skjer vidare - berre at Nasdaq har flytta
+    seg meir enn ein vanleg dag, og kva veg. Éi melding per nivå, så
+    ein dag som fell jamt ikkje gir tjue meldingar.
+    """
+    if not config.get("move_alert_enabled", True):
+        return
+    if local_time.hour < 7 or local_time.hour >= 23:
+        return
+
+    steg = config.get("move_alert_levels", [1.0, 2.0, 3.0])
+    move = rules.max_abs_move(all_quotes)
+    today = local_time.strftime("%Y-%m-%d")
+    alt_meldt = state.move_mark(today)
+
+    naadd = [s for s in steg if move >= s and s > alt_meldt]
+    if not naadd:
+        return
+    niva = max(naadd)
+
+    retning = "opp"
+    for quote in all_quotes:
+        if abs(quote.get("change_pct", 0.0)) == move:
+            retning = "opp" if quote.get("change_pct", 0) > 0 else "ned"
+            break
+
+    message = "Halla Sjef 👋\nDet rører seg - Nasdaq %s %.1f %% no.\n\n%s\n%s" % (
+        retning, move, price_summary_of(all_quotes), local_time.strftime("%d.%m %H:%M"))
+
+    if dry_run:
+        print("[main] DRY RUN - ville sendt rørsle-melding (nivå %.1f):\n%s"
+              % (niva, message))
+        state.record_move(today, niva)
+        return
+    if notify.send(message):
+        state.record_move(today, niva)
+        print("[main] rørsle-melding sendt (%s %.1f %%)" % (retning, move))
+
+
+def price_summary_of(quotes):
+    return prices.summarize(quotes)
+
+
 def _maybe_lean_alert(state, config, local_time, verdict, price_summary,
                       base_rate, dry_run):
     """Melding når det lener, men ikkje er sikkert.
@@ -440,7 +523,7 @@ def run(mode="auto", dry_run=False):
     # Kalenderen (gratis). Det einaste i heile verktøyet som er fakta
     # og ikkje tolking: kva som er planlagt, og om det har kome enno.
     calendar_summary = ""
-    ventar, pending = 0, []
+    ventar, pending, kalender = 0, [], {}
     try:
         kalender = market_calendar.fetch_today(
             local_time.strftime("%Y-%m-%d"), tzname)
@@ -504,6 +587,14 @@ def run(mode="auto", dry_run=False):
     print("[main] %d kandidatar etter filter (stor prisrørsle: %s)" % (len(candidates), big_move))
 
     api_key = env("ANTHROPIC_API_KEY")
+
+    # 3a. Dei to faktameldingane. Desse treng ingen vurdering og ingen
+    # API-nøkkel: eit tal som er sleppt, og ei rørsle som skjer, er
+    # ikkje spådommar. Difor går dei ut med ein gong.
+    if kalender:
+        _maybe_event_alert(state, config, local_time, pending, kalender,
+                           price_summary, dry_run)
+    _maybe_move_alert(state, config, local_time, all_quotes, dry_run)
 
     # 3b. Morgonmeldinga. Eigen veg gjennom systemet: ho går utanom
     # terskelen, cooldown og dagsgrensa, fordi ho ikkje er eit varsel.
