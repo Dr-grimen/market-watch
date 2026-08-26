@@ -275,6 +275,58 @@ def _live_move(quotes_by_asset, history_key):
     return max((q.get("change_pct", 0.0) for q in quotes), key=abs)
 
 
+def _maybe_lean_alert(state, config, local_time, verdict, price_summary,
+                      base_rate, dry_run):
+    """Melding når det lener, men ikkje er sikkert.
+
+    Faren med denne er at ho blir lesen som eit varsel. Difor står
+    confidence i overskrifta, og basisraten rett under: er hellinga
+    58 % når 56 % av alle dagar går opp uansett, har du fått vite at
+    du har to prosentpoeng - ikkje at du har eit signal.
+    """
+    if not config.get("lean_alert_enabled", True):
+        return
+    direction = verdict.get("direction")
+    if direction not in ("opp", "ned"):
+        return
+
+    conf = float(verdict.get("confidence", 0.0))
+    if conf < config.get("lean_threshold", 0.55):
+        return
+    if local_time.hour < 7 or local_time.hour >= 23:
+        return
+    if state.leans_today() >= config.get("max_lean_alerts_per_day", 3):
+        return
+    if state.in_lean_cooldown(direction, config.get("lean_cooldown_minutes", 240)):
+        return
+
+    basis = ""
+    if base_rate:
+        vs = base_rate * 100 if direction == "opp" else (1 - base_rate) * 100
+        basis = ("\nTil samanlikning: %.0f %% av alle dagar går %s uansett. "
+                 "Hellinga er %+.0f prosentpoeng." % (vs, direction, conf * 100 - vs))
+
+    message = (
+        "NASDAQ LENER %s - %d %% sikker\n"
+        "IKKJE eit sikkert varsel (terskelen er %d %%).%s\n\n"
+        "%s\n\n"
+        "%s\n"
+        "Skildring, ikkje eit råd.\n%s"
+    ) % (
+        direction.upper(), round(conf * 100),
+        round(config.get("confidence_threshold", 0.75) * 100), basis,
+        verdict.get("message") or verdict.get("reasoning", ""),
+        price_summary, local_time.strftime("%d.%m %H:%M"),
+    )
+
+    if dry_run:
+        print("[main] DRY RUN - ville sendt lean-varsel:\n%s" % message)
+        return
+    if notify.send(message):
+        state.record_lean(direction)
+        print("[main] lean-varsel sendt (%s, %.0f %%)" % (direction, conf * 100))
+
+
 def _send_briefing(state, config, local_time, candidates, price_summary,
                    world_summary, technical_summary, calendar_summary,
                    chart_summary, ensemble_summary, quotes_by_asset,
@@ -411,7 +463,9 @@ def run(mode="auto", dry_run=False):
     # Signalsamlinga: fleire uavhengige signal, kvart med si MÅLTE
     # treffrate. Peikar dei ulike vegar, er usikkert det rette svaret.
     ensemble_summary = ""
+    base_rate = None
     if reports:
+        base_rate = reports[0]["base_rates"].get(1)
         try:
             qqq = history.fetch_daily("QQQ")
             kryss = dict((k, ensemble._aligned(qqq, v))
@@ -537,6 +591,11 @@ def run(mode="auto", dry_run=False):
 
     threshold = config.get("confidence_threshold", 0.75)
     if conf < threshold:
+        # Under terskelen for eit sikkert varsel - men lener det tydeleg
+        # ein veg, skal han få vite det. Med talet på, og med basisraten
+        # ved sida av, så han ser kor tynn hellinga eigentleg er.
+        _maybe_lean_alert(state, config, local_time, verdict, price_summary,
+                          base_rate, dry_run)
         print("[main] %.2f under terskel %.2f - stille" % (conf, threshold))
         state.save()
         return 0

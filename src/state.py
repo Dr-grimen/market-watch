@@ -32,6 +32,8 @@ class State(object):
         self.week_alerts = data.get("week_alerts", 0)
         self.last_briefing_date = data.get("last_briefing_date", "")
         self.last_uncertainty_date = data.get("last_uncertainty_date", "")
+        self.lean_log = data.get("lean_log", [])          # tidspunkt
+        self.last_lean = data.get("last_lean", {})        # retning -> tidspunkt
 
         # Kva kjelder som faktisk svarte sist. Ein feed som stille sluttar
         # å levere er den farlegaste feilen i heile verktøyet: alt ser ut
@@ -54,6 +56,7 @@ class State(object):
             (k, v) for k, v in self.seen.items() if now - v < SEEN_TTL_SECONDS
         )
         self.alert_log = [t for t in self.alert_log if now - t < 60 * 60 * 24]
+        self.lean_log = [t for t in self.lean_log if now - t < 60 * 60 * 24]
         payload = {
             "seen": self.seen,
             "last_alert": self.last_alert,
@@ -66,6 +69,8 @@ class State(object):
             "week_alerts": self.week_alerts,
             "last_briefing_date": self.last_briefing_date,
             "last_uncertainty_date": self.last_uncertainty_date,
+            "lean_log": self.lean_log,
+            "last_lean": self.last_lean,
             "feed_health": self.feed_health,
         }
         with open(STATE_PATH, "w", encoding="utf-8") as fh:
@@ -128,6 +133,19 @@ class State(object):
 
     def record_briefing(self, today):
         self.last_briefing_date = today
+
+    def leans_today(self):
+        cutoff = time.time() - 60 * 60 * 24
+        return len([t for t in self.lean_log if t > cutoff])
+
+    def in_lean_cooldown(self, direction, minutes):
+        last = self.last_lean.get(direction)
+        return last is not None and (time.time() - last) < minutes * 60
+
+    def record_lean(self, direction):
+        now = time.time()
+        self.last_lean[direction] = now
+        self.lean_log.append(now)
 
     def uncertainty_due(self, today):
         return self.last_uncertainty_date != today

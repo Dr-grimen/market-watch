@@ -392,7 +392,11 @@ SIGNALS = [
     ("vol_spike_down", "Volumspreng ned", "ned", p_vol_spike_down),
 ]
 
-HORIZONS = (1, 5)
+# 1 og 5 dagar er dei vanlege. 10 er med fordi forskingslitteraturen
+# viser at HORISONTEN snur konklusjonen: same moenster gir profitt med
+# eitt exit-regime og tap med eit anna. Testar vi berre eitt tidsrom,
+# ser vi berre halve biletet.
+HORIZONS = (1, 5, 10)
 
 
 # ---------------------------------------------------------------- statistikken

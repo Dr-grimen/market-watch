@@ -108,6 +108,18 @@ briefing_minute: 40
 # kvart 20. minutt og treffer ikkje 08:40 på minuttet.
 briefing_window_minutes: 25
 
+# --- Varsel når det LENER ein veg, men ikkje er sikkert ---
+# Sondre bad om melding med ein gong systemet trur det går opp eller ned,
+# ikkje berre når det er sikkert. Det får han - men med talet klistra på.
+#
+# Basisraten er 56 %. Ein lean på 58 % er altså to prosentpoeng betre enn
+# å gjette "opp" kvar einaste dag. Det står i meldinga, kvar gong, fordi
+# ein lean som blir lesen som eit sikkert signal er verre enn ingen lean.
+lean_alert_enabled: true
+lean_threshold: 0.55           # under dette er det ikkje eingong ei helling
+max_lean_alerts_per_day: 3
+lean_cooldown_minutes: 240
+
 # --- Varsel om at det er stort, men uklart ---
 # Vanleg tvil er stille. Det er heile prinsippet. Men når marknaden
 # rykkjer kraftig, heile verda skriv om det, og signala framleis sprikar,
