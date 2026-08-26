@@ -87,64 +87,45 @@ def briefing_due(local_time, config, state):
 
 
 def build_briefing(verdict, price_summary, chart_summary, local_time, threshold):
-    """Morgonmeldinga. Kort med vilje.
+    """Kort. Sondre bad om "ein rask og lett melding", og fekk det.
 
-    Brukaren spurde om éin ting: er Nasdaq sikker eller ikkje. Verdsbiletet,
-    kalenderen og alle kjeldene går framleis inn til modellen - men dei skal
-    ikkje ut att på telefonen hans. Han skal sjå konklusjonen, ikkje
-    råmaterialet.
+    Prosenten står likevel med. Ei melding som seier "sikker" utan tal
+    er ikkje lett - ho er misvisande, og skilnaden mellom 66 % og 90 %
+    er heile skilnaden.
     """
     direction = verdict.get("direction", "uklart")
     conf = float(verdict.get("confidence", 0.0))
-    sikker = direction in ("opp", "ned") and conf >= threshold
+    grunn = (verdict.get("message") or verdict.get("reasoning", "")).strip()
+    # Éi setning er nok her. Resten ligg i loggen.
+    fyrste = grunn.split(". ")[0]
+    if fyrste and not fyrste.endswith("."):
+        fyrste += "."
 
-    if sikker:
-        svar = "JA - %s (%d %% sikker)" % (direction.upper(), round(conf * 100))
-    elif direction in ("opp", "ned"):
-        svar = "NEI - lener mot %s, men berre %d %% sikker" % (
-            direction, round(conf * 100))
-    else:
-        svar = "NEI - retninga er uklar (%d %%)" % round(conf * 100)
+    # Usikker dag: berre den eine linja. Prosenten er utelaten med vilje -
+    # på ein grå dag endrar det ingenting om det står 31 eller 44 %, og
+    # Sondre bad om kort. På ein SIKKER dag står talet, for der er
+    # skilnaden mellom 66 og 90 heile skilnaden.
+    if direction not in ("opp", "ned") or conf < threshold:
+        return "Halla Sjef 👋\nGrå dag i dag!\n\n%s" % (
+            local_time.strftime("%d.%m %H:%M"))
 
-    minutter = (9 * 60) - (local_time.hour * 60 + local_time.minute)
-    if minutter > 0:
-        naar = "Oslo opnar om %d min" % minutter
-    elif minutter > -60:
-        naar = "Oslo har akkurat opna"
-    else:
-        naar = "sein - Oslo opna for %d t sidan" % (-minutter // 60)
-
-    # chart_summary blir med vilje IKKJE skriven ut. Statistikken er
-    # rekna ut, han ligg i materialet modellen les, og han påverkar
-    # vurderinga - men Sondre bad om å sleppe å sjå han. Konklusjonen
-    # skal ut; råmaterialet skal ikkje.
-    return (
-        "NASDAQ - %s\n"
-        "SIKKER? %s\n\n"
-        "%s\n\n"
-        "%s\n\n"
-        "Skildring av marknaden, ikkje eit råd.\n"
-        "%s"
-    ) % (
-        naar,
-        svar,
-        verdict.get("message") or verdict.get("reasoning", ""),
-        price_summary or "ingen prisdata",
-        local_time.strftime("%d.%m %H:%M"),
-    )
+    return "Halla Sjef 👋\nEg er sikker på %s i dag (%d %%).\n\n%s\n\n%s\n%s" % (
+        direction.upper(), round(conf * 100), fyrste,
+        price_summary or "", local_time.strftime("%d.%m %H:%M"))
 
 
 def build_message(verdict, price_summary, local_time):
-    text = verdict.get("message") or verdict.get("reasoning", "")
-    label = "NASDAQ"
-    arrow = {"opp": "OPP", "ned": "NED"}.get(verdict.get("direction"), "?")
+    """Varselet gjennom dagen. Same korte form som morgonmeldinga."""
+    direction = verdict.get("direction", "uklart")
+    grunn = (verdict.get("message") or verdict.get("reasoning", "")).strip()
+    fyrste = grunn.split(". ")[0]
+    if fyrste and not fyrste.endswith("."):
+        fyrste += "."
 
-    return "[%s %s | %s | %d%%] %s\n%s\n%s" % (
-        label,
-        arrow,
-        verdict.get("horizon", ""),
-        int(round(verdict.get("confidence", 0) * 100)),
-        text,
+    return "Halla Sjef 👋\nEg er sikker på %s (%d %%).\n\n%s\n\n%s\n%s" % (
+        {"opp": "OPP", "ned": "NED"}.get(direction, "?"),
+        round(float(verdict.get("confidence", 0)) * 100),
+        fyrste,
         price_summary,
         local_time.strftime("%d.%m %H:%M"),
     )

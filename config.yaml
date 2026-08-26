@@ -4,8 +4,13 @@
 timezone: Europe/Oslo
 
 # Kor sikker Claude må vere før du får melding (0.0 - 1.0).
-# Høgare tal = færre meldingar, men sikrare. 0.75 er eit strengt utgangspunkt.
-confidence_threshold: 0.75
+# Sondre sette denne til 0.65. Det er lågare enn dei 0.75 vi starta med,
+# så det blir fleire meldingar - og fleire av dei vil vere feil. Det er
+# eit medvite val han har teke.
+#
+# Om talet 0.65 i det heile tatt betyr 65 %, veit vi ikkje enno.
+# Kalibreringa i predictions.json svarer på det om nokre månader.
+confidence_threshold: 0.65
 
 # Minste tal minutt mellom to varsel om same aktivum og same retning.
 # Hindrar at same nyheit gir deg fem SMS.
@@ -115,7 +120,9 @@ briefing_window_minutes: 25
 # Basisraten er 56 %. Ein lean på 58 % er altså to prosentpoeng betre enn
 # å gjette "opp" kvar einaste dag. Det står i meldinga, kvar gong, fordi
 # ein lean som blir lesen som eit sikkert signal er verre enn ingen lean.
-lean_alert_enabled: true
+# Av: terskelen ER no 65 %, så eit eige sjikt under han ville berre
+# vore støy oppå dei meldingane han alt får.
+lean_alert_enabled: false
 lean_threshold: 0.55           # under dette er det ikkje eingong ei helling
 max_lean_alerts_per_day: 3
 lean_cooldown_minutes: 240
