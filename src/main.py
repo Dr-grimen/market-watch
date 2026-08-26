@@ -17,7 +17,7 @@ except ImportError:  # Python < 3.9
 from .config import load_config, env
 from .state import State
 from .sources import news, prices, history, calendar as market_calendar
-from . import rules, analyze, notify, technicals, calibration
+from . import rules, analyze, notify, technicals, calibration, ensemble
 
 
 def now_local(tzname):
@@ -277,7 +277,8 @@ def _live_move(quotes_by_asset, history_key):
 
 def _send_briefing(state, config, local_time, candidates, price_summary,
                    world_summary, technical_summary, calendar_summary,
-                   chart_summary, quotes_by_asset, api_key, dry_run):
+                   chart_summary, ensemble_summary, quotes_by_asset,
+                   api_key, dry_run):
     """Sender morgonmeldinga. Feilar ho, blir det stille - ikkje eit krasj."""
     today = local_time.strftime("%Y-%m-%d")
     if not api_key:
@@ -292,6 +293,7 @@ def _send_briefing(state, config, local_time, candidates, price_summary,
         world_summary=world_summary,
         technical_summary=technical_summary,
         calendar_summary=calendar_summary,
+        ensemble_summary=ensemble_summary,
         system_prompt=analyze.BRIEFING_PROMPT,
     )
     if verdict is None:
@@ -406,6 +408,23 @@ def run(mode="auto", dry_run=False):
         print("[main] kalenderen svarte ikkje (%s) - held fram utan"
               % type(exc).__name__)
 
+    # Signalsamlinga: fleire uavhengige signal, kvart med si MÅLTE
+    # treffrate. Peikar dei ulike vegar, er usikkert det rette svaret.
+    ensemble_summary = ""
+    if reports:
+        try:
+            qqq = history.fetch_daily("QQQ")
+            kryss = dict((k, ensemble._aligned(qqq, v))
+                         for k, v in ensemble.load_cross().items())
+            res = ensemble.evaluate(qqq, kryss)
+            ensemble_summary = ensemble.format_report(res, qqq)
+            if res:
+                print("[main] signal: %d slo ut, %d med målt kant -> %s" % (
+                    len(res["votes"]), len(res["weighted"]), res["direction"]))
+        except Exception as exc:
+            print("[main] signalsamlinga feila (%s) - held fram utan"
+                  % type(exc).__name__)
+
     # Døm gårsdagens vurderingar mot det som faktisk hende. Utan dette
     # er eit confidence-tal berre ein påstand modellen skriv om seg sjølv.
     if reports:
@@ -448,7 +467,8 @@ def run(mode="auto", dry_run=False):
     if mode == "briefing" or briefing_due(local_time, config, state):
         _send_briefing(state, config, local_time, candidates, price_summary,
                        world_summary, technical_summary, calendar_summary,
-                       chart_summary, quotes_by_asset, api_key, dry_run)
+                       chart_summary, ensemble_summary, quotes_by_asset,
+                       api_key, dry_run)
 
     if not candidates and not big_move:
         print("[main] ingenting å vurdere - stille")
@@ -484,7 +504,8 @@ def run(mode="auto", dry_run=False):
     verdict = analyze.evaluate(candidates, price_summary, context_note, api_key,
                                world_summary=world_summary,
                                technical_summary=technical_summary,
-                               calendar_summary=calendar_summary)
+                               calendar_summary=calendar_summary,
+                               ensemble_summary=ensemble_summary)
     if verdict is None:
         _handle_failure(state, config, "Claude-kallet feila", dry_run)
         state.save()

@@ -73,6 +73,20 @@ på Nasdaq neste dag i praksis ukjend uansett kva anna du ser.
 - Står det ingenting på kalenderen, er det eit argument for at ein roleg dag \
 faktisk ER roleg - og ikkje stille før noko du har oversett.
 
+SIGNALSAMLINGA - SLIK DEI BESTE FAKTISK ARBEIDER:
+Du får fleire uavhengige signal (trend, momentum, motrørsle, halvleiarar, \
+renter, risikovilje), og for kvart av dei kva det har VORE verdt målt på \
+historikken. Vekta er ikkje gjetta - ho er den målte kanten over basisraten.
+
+- Eit signal merkt "vekt 0 (støy)" har INGEN målt kant. Det skal ikkje \
+påverke deg det minste, uansett kor fornuftig namnet høyrest ut.
+- Står det at ingen av signala har målt kant, er det eit sterkt argument \
+for låg confidence. Då finst det ikkje noko mekanisk grunnlag i det heile.
+- Er signala usamde, er "uklart" det RIKTIGE svaret. Verdas mest lønsame \
+fond har ein treffprosent på 50,75 - dei er ikkje sikre, dei er berre \
+ærlege om kor tynn kanten er. Å late som du er sikrare enn signala er \
+den einaste måten dette verktøyet kan bli verdilaust på.
+
 RØRSLE OVER NATTA - DEN VIKTIGASTE FELLA:
 Du får ein tabell over kva ei rørsle over natta historisk har tydd.
 
@@ -219,11 +233,14 @@ TIER_LABEL = {
 
 
 def _build_material(candidates, price_summary, context_note, world_summary="",
-                    technical_summary="", calendar_summary=""):
+                    technical_summary="", calendar_summary="",
+                    ensemble_summary=""):
     lines = ["<material>", "NASDAQ NO:", price_summary]
     if calendar_summary:
         lines += ["", "PLANLAGT I DAG (dette er FAKTA, ikkje tolking):",
                   calendar_summary]
+    if ensemble_summary:
+        lines += ["", ensemble_summary]
     if world_summary:
         lines += ["", "VERDSBILETE (bakgrunn - ikkje varselmål):", world_summary]
     if technical_summary:
@@ -323,7 +340,7 @@ def _call(client, material, use_schema, system_prompt=SYSTEM_PROMPT):
 
 def evaluate(candidates, price_summary, context_note="", api_key=None,
              world_summary="", technical_summary="", calendar_summary="",
-             system_prompt=None):
+             ensemble_summary="", system_prompt=None):
     """Returnerer validert dict, eller None dersom kallet feilar."""
     if not candidates and not technical_summary:
         return None
@@ -331,7 +348,7 @@ def evaluate(candidates, price_summary, context_note="", api_key=None,
     client = anthropic.Anthropic(api_key=api_key) if api_key else anthropic.Anthropic()
     material = _build_material(candidates, price_summary, context_note,
                                world_summary, technical_summary,
-                               calendar_summary)
+                               calendar_summary, ensemble_summary)
     system_prompt = system_prompt or SYSTEM_PROMPT
 
     for use_schema in (True, False):
