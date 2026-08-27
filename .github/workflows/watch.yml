@@ -2,6 +2,12 @@ name: market-watch
 
 on:
   schedule:
+    # MERK KLOKKESLETTA: ingen av dei står på heil eller halv time.
+    # GitHub sin eigen dokumentasjon seier at lasta er høgast ved starten
+    # av kvar time, og at køa då kan bli droppa heilt. Difor ligg alle
+    # fyringane på skeive minutt - 37, 07, 23, 13, 47. Det er gratis, og
+    # det er den einaste justeringa GitHub sjølv tilrår.
+    #
     # GitHub koeyrer planlagde jobbar "best effort", og droppar dei naar
     # frekvensen er hoeg - vi bad om 45 i doegnet og fekk 2. Difor ber vi
     # no om berre TRE, og lar kvar av dei koeyre ei lang oekt som sjekkar
@@ -14,15 +20,15 @@ on:
     # 08:40 norsk tid, så det held at éin av dei kjem gjennom.
     #
     # 05:30 UTC = 07:30 norsk. Dekkjer 07:30-12:30.
-    - cron: "30 5 * * 1-5"
+    - cron: "37 5 * * 1-5"
     # 06:00 UTC = 08:00 norsk. Dekkjer 08:00-13:00.
-    - cron: "0 6 * * 1-5"
+    - cron: "7 6 * * 1-5"
     # 06:30 UTC = 08:30 norsk. Siste sjanse før 08:40.
-    - cron: "30 6 * * 1-5"
+    - cron: "23 6 * * 1-5"
     # 11:00 UTC = 13:00 norsk. Dekkjer amerikansk opning 15:30 og utover.
-    - cron: "0 11 * * 1-5"
+    - cron: "13 11 * * 1-5"
     # 16:00 UTC = 18:00 norsk. Dekkjer resten av handelsdagen til stenging.
-    - cron: "0 16 * * 1-5"
+    - cron: "47 15 * * 1-5"
 
   # Køyr manuelt frå Actions-fana for å teste.
   workflow_dispatch:
