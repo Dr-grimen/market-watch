@@ -4,13 +4,18 @@
 timezone: Europe/Oslo
 
 # Kor sikker Claude må vere før du får melding (0.0 - 1.0).
-# 0.60. Over dette får han melding med retning; under får han "grå dag".
-# Éin terskel, to utfall, ingen mellomting. Det var bestillinga, og han
-# har rett i at det var eg som gjorde det komplisert.
+# 0.65. Over dette får han melding med retning; under får han "grå dag".
+# Éin terskel, to utfall, ingen mellomting.
+#
+# Sett opp frå 0.60 etter ein test som viste at maskineriet toler det:
+# eit klart negativt nyheitsbilete (CPI 4,1 % mot venta 3,2 %) gav NED
+# med 82 %, og eit klart positivt gav OPP med 72 %. Begge ville framleis
+# komme gjennom. Det er dei lunkne 60-64 % som blir borte - og dei var
+# det minst å stole på.
 #
 # Om talet 0.65 i det heile tatt betyr 65 %, veit vi ikkje enno.
 # Kalibreringa i predictions.json svarer på det om nokre månader.
-confidence_threshold: 0.60
+confidence_threshold: 0.65
 
 # Minste tal minutt mellom to varsel om same aktivum og same retning.
 # Hindrar at same nyheit gir deg fem SMS.
