@@ -8,9 +8,17 @@ on:
     # sjolv kvart kvarter. Ein cron som fyrer 3 gonger blir honorert;
     # ein som fyrer 45 blir det ikkje.
     #
-    # 06:00 UTC = 08:00 norsk sommartid. Dekkjer morgonmeldinga 08:40
-    # og formiddagen fram til 13:00.
+    # Morgonen har TRE fyringar, ikkje éin. Grunnen er at morgonmeldinga
+    # er den einaste Sondre faktisk ventar på kvar dag - og ein droppa
+    # cron der tyder ingen melding i det heile. Kvar av dei tre dekkjer
+    # 08:40 norsk tid, så det held at éin av dei kjem gjennom.
+    #
+    # 05:30 UTC = 07:30 norsk. Dekkjer 07:30-12:30.
+    - cron: "30 5 * * 1-5"
+    # 06:00 UTC = 08:00 norsk. Dekkjer 08:00-13:00.
     - cron: "0 6 * * 1-5"
+    # 06:30 UTC = 08:30 norsk. Siste sjanse før 08:40.
+    - cron: "30 6 * * 1-5"
     # 11:00 UTC = 13:00 norsk. Dekkjer amerikansk opning 15:30 og utover.
     - cron: "0 11 * * 1-5"
     # 16:00 UTC = 18:00 norsk. Dekkjer resten av handelsdagen til stenging.
