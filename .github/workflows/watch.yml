@@ -23,6 +23,10 @@ on:
         description: "Ikkje send melding, berre vis kva som ville blitt sendt"
         type: boolean
         default: true
+      long_run:
+        description: "Start ei lang økt no (5 timar, sjekk kvart kvarter)"
+        type: boolean
+        default: false
       mode:
         description: "briefing tvingar fram morgonmeldinga (for testing)"
         type: choice
@@ -78,8 +82,11 @@ jobs:
             ARGS="$ARGS --dry-run"
           fi
 
-          # Manuell start: koeyr éin gong og ferdig.
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          # Manuell start koeyrer éin gong - med mindre long_run er sett,
+          # og då oppfoerer han seg som ei planlagd oekt. Det er slik vi
+          # kan teste loekka utan aa vente paa neste cron.
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] \
+             && [ "${{ github.event.inputs.long_run }}" != "true" ]; then
             python -m src.main $ARGS
             exit $?
           fi
