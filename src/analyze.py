@@ -149,6 +149,24 @@ fond har ein treffprosent på 50,75 - dei er ikkje sikre, dei er berre \
 ærlege om kor tynn kanten er. Å late som du er sikrare enn signala er \
 den einaste måten dette verktøyet kan bli verdilaust på.
 
+Å LESE MARKNADEN MEDAN HAN GÅR:
+Du får no vite korleis dagen faktisk utviklar seg, ikkje berre kvar han \
+står. Skilnaden er reell. Desse to dagane har same sluttkurs:
+
+  A: opnar +0,2 %, klatrar jamt, endar +0,9 % PÅ TOPPEN av dagen
+  B: opnar +1,4 %, fell tilbake heile dagen, endar +0,9 % PÅ BOTNEN
+
+Same tal i avisa, heilt ulik dag. Slik les du det:
+- NÆR DAGENS TOPP (over 80 % opp i spennet): kjøparane held kontrollen. \
+Ei god nyheit blir teken imot, ikkje seld ned.
+- NÆR DAGENS BOTN (under 20 %): seljarane held. Sjølv gode nyheiter blir \
+brukte til å selje.
+- SISTE TIMEN MOTSETT AV RESTEN AV DAGEN: rørsla snur. Det svekkjer kvar \
+påstand du elles ville gjort, og skal trekkje confidence NED.
+- SPENNET mot ein vanleg dag seier om det i det heile er ein dag verdt å \
+bry seg om. Er spennet 0,3x det normale, har det ikkje hendt noko - \
+uansett kor dramatiske overskriftene er.
+
 RØRSLE OVER NATTA - DEN VIKTIGASTE FELLA:
 Du får ein tabell over kva ei rørsle over natta historisk har tydd.
 
@@ -325,11 +343,13 @@ TIER_LABEL = {
 
 def _build_material(candidates, price_summary, context_note, world_summary="",
                     technical_summary="", calendar_summary="",
-                    ensemble_summary=""):
+                    ensemble_summary="", intradag_summary=""):
     lines = ["<material>", "NASDAQ NO:", price_summary]
     if calendar_summary:
         lines += ["", "PLANLAGT I DAG (dette er FAKTA, ikkje tolking):",
                   calendar_summary]
+    if intradag_summary:
+        lines += ["", "MARKNADEN AKKURAT NO:", intradag_summary]
     if ensemble_summary:
         lines += ["", ensemble_summary]
     if world_summary:
@@ -432,7 +452,7 @@ def _call(client, material, use_schema, system_prompt=SYSTEM_PROMPT,
 
 def evaluate(candidates, price_summary, context_note="", api_key=None,
              world_summary="", technical_summary="", calendar_summary="",
-             ensemble_summary="", system_prompt=None):
+             ensemble_summary="", intradag_summary="", system_prompt=None):
     """Returnerer validert dict, eller None dersom kallet feilar."""
     if not candidates and not technical_summary:
         return None
@@ -440,7 +460,8 @@ def evaluate(candidates, price_summary, context_note="", api_key=None,
     client = anthropic.Anthropic(api_key=api_key) if api_key else anthropic.Anthropic()
     material = _build_material(candidates, price_summary, context_note,
                                world_summary, technical_summary,
-                               calendar_summary, ensemble_summary)
+                               calendar_summary, ensemble_summary,
+                               intradag_summary)
     system_prompt = system_prompt or SYSTEM_PROMPT
 
     # Kvar modell blir prøvd med begge svarformata før vi går vidare.

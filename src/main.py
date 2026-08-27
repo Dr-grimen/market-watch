@@ -16,7 +16,7 @@ except ImportError:  # Python < 3.9
 
 from .config import load_config, env
 from .state import State
-from .sources import news, prices, history, calendar as market_calendar
+from .sources import news, prices, history, intraday, calendar as market_calendar
 from . import rules, analyze, notify, technicals, calibration, ensemble
 
 
@@ -398,8 +398,8 @@ def _maybe_lean_alert(state, config, local_time, verdict, price_summary,
 
 def _send_briefing(state, config, local_time, candidates, price_summary,
                    world_summary, technical_summary, calendar_summary,
-                   chart_summary, ensemble_summary, quotes_by_asset,
-                   pending, api_key, dry_run):
+                   chart_summary, ensemble_summary, intradag_summary,
+                   quotes_by_asset, pending, api_key, dry_run):
     """Sender morgonmeldinga. Feilar ho, blir det stille - ikkje eit krasj."""
     today = local_time.strftime("%Y-%m-%d")
     if not api_key:
@@ -415,6 +415,7 @@ def _send_briefing(state, config, local_time, candidates, price_summary,
         technical_summary=technical_summary,
         calendar_summary=calendar_summary,
         ensemble_summary=ensemble_summary,
+        intradag_summary=intradag_summary,
         system_prompt=analyze.BRIEFING_PROMPT,
     )
     if verdict is None:
@@ -523,6 +524,25 @@ def run(mode="auto", dry_run=False):
         print("[main] chart: %d instrument | statistisk kant: %s" % (
             len(reports), tech_edge[2] if tech_edge else "ingen over støygrensa"))
 
+    # Korleis dagen faktisk går, minutt for minutt. To dagar med same
+    # sluttkurs kan vere heilt ulike dagar - ein som klatrar jamt og ein
+    # som fell tilbake frå toppen. Utan dette les vi eit referat av
+    # marknaden i staden for marknaden sjølv.
+    intradag_summary = ""
+    try:
+        qqq_bars = history.fetch_daily("QQQ")
+        dagsanalyse = intraday.analyse(
+            intraday.fetch("QQQ"),
+            forrige_slutt=qqq_bars[-1]["close"] if qqq_bars else None)
+        if dagsanalyse:
+            intradag_summary = intraday.format_report(
+                dagsanalyse, "Nasdaq (QQQ)", intraday.snitt_dagsspenn(qqq_bars))
+            print("[main] intradag: %+.2f %% frå opning, %.0f %% opp i dagens spenn"
+                  % (dagsanalyse["fra_aapning"], dagsanalyse["plassering"] * 100))
+    except Exception as exc:
+        print("[main] intradag svarte ikkje (%s) - held fram utan"
+              % type(exc).__name__)
+
     # Kalenderen (gratis). Det einaste i heile verktøyet som er fakta
     # og ikkje tolking: kva som er planlagt, og om det har kome enno.
     calendar_summary = ""
@@ -606,8 +626,8 @@ def run(mode="auto", dry_run=False):
     if mode == "briefing" or briefing_due(local_time, config, state):
         _send_briefing(state, config, local_time, candidates, price_summary,
                        world_summary, technical_summary, calendar_summary,
-                       chart_summary, ensemble_summary, quotes_by_asset,
-                       pending, api_key, dry_run)
+                       chart_summary, ensemble_summary, intradag_summary,
+                       quotes_by_asset, pending, api_key, dry_run)
 
     if not candidates and not big_move:
         print("[main] ingenting å vurdere - stille")
@@ -645,7 +665,8 @@ def run(mode="auto", dry_run=False):
                                    world_summary=world_summary,
                                    technical_summary=technical_summary,
                                    calendar_summary=calendar_summary,
-                                   ensemble_summary=ensemble_summary)
+                                   ensemble_summary=ensemble_summary,
+                                   intradag_summary=intradag_summary)
     except analyze.FatalKontoFeil as exc:
         # Dette går ikkje over av seg sjølv. Meldinga skal seie kva
         # Sondre må gjere, ikkje kva som teknisk gjekk gale - han sit
