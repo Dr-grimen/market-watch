@@ -22,6 +22,11 @@ max_alerts_per_day: 6
 # Maks tal nyheitssaker som blir sendt til Claude i éin køyring.
 # Kvar sak kostar pengar, så dette er kostnadstaket ditt.
 max_items_to_llm: 12
+# Kor mange av dei 12 som er reserverte til saker som nemner Nasdaq.
+# Utan denne tok geopolitikk 10 av 12 plassar da verdsovervakinga kom
+# inn, og Fed-uttalar og resultatvarsel forsvann ut - dei sakene som
+# faktisk flyttar Nasdaq oftast.
+nasdaq_slots: 6
 
 # --- Helseovervaking ---
 # Stille er den normale utgangen frå dette verktøyet. Difor ser eit
@@ -193,9 +198,6 @@ source_tiers:
     # Statsmedia: ofte raskast på hendingar i eige land, men dei er
     # propagandaorgan. Verdifulle som tidleg hint, aldri som einaste kjelde.
     - Tehran Times
-    - Global Times
-    - Xinhua
-    - China Daily
     - TASS
 
 # Maks alder på ei sak før ho blir ignorert.
@@ -409,12 +411,23 @@ feeds:
     url: https://rss.dw.com/rdf/rss-en-world
   - name: Tehran Times
     url: https://www.tehrantimes.com/rss
-  - name: Global Times
-    url: https://www.globaltimes.cn/rss/outbrain.xml
-  - name: Xinhua
-    url: http://www.xinhuanet.com/english/rss/worldrss.xml
-  - name: China Daily
-    url: http://www.chinadaily.com.cn/rss/world_rss.xml
+  # Xinhua, China Daily og Global Times er prøvde og forkasta: dei
+  # daterer sakene sine fleire år tilbake, så alt blir filtrert bort som
+  # gammalt. Desse under daterer riktig og er testa ferske.
+  - name: SCMP China
+    url: https://www.scmp.com/rss/4/feed
+  - name: Straits Times Asia
+    url: https://www.straitstimes.com/news/asia/rss.xml
+  - name: Reuters Kina
+    url: https://news.google.com/rss/search?q=when:6h+site:reuters.com+China&hl=en-US&gl=US&ceid=US:en
+  - name: GN Kina-marknad
+    url: https://news.google.com/rss/search?q=when:6h+China+stocks+OR+yuan+OR+PBOC&hl=en-US&gl=US&ceid=US:en
+  - name: GN Kina-USA
+    url: https://news.google.com/rss/search?q=when:12h+China+US+tariff+OR+trade+OR+export+controls&hl=en-US&gl=US&ceid=US:en
+  - name: GN Golf-regionen
+    url: https://news.google.com/rss/search?q=when:12h+Saudi+OR+UAE+OR+Qatar+oil+OR+OPEC&hl=en-US&gl=US&ceid=US:en
+  - name: GN Nord-Korea
+    url: https://news.google.com/rss/search?q=when:24h+North+Korea+missile+OR+nuclear&hl=en-US&gl=US&ceid=US:en
   - name: TASS
     url: https://tass.com/rss/v2.xml
   - name: Moscow Times

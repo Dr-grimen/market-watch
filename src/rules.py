@@ -169,24 +169,62 @@ def prefilter(items, config, state):
     # Behald berre éin versjon av kvar hending, den høgast rangerte.
     # At fleire aviser melde henne blir talt opp i staden.
     limit = config.get("max_items_to_llm", 12)
+
+    # Kvote til Nasdaq-saker.
+    #
+    # Då verdsovervakinga kom inn, tok geopolitikk 10 av 12 plassar -
+    # og då forsvann Fed-uttalar og resultatvarsel, som er dei sakene
+    # som faktisk flyttar Nasdaq oftast. Ein god idé som eter opp alt
+    # anna er ikkje lenger ein god idé.
+    #
+    # Difor: eit tal plassar er reservert for saker som nemner Nasdaq
+    # direkte. Resten går til den beste uansett kategori.
+    kvote = config.get("nasdaq_slots", 6)
+
     kept = []
     selected = []
-    for item in candidates:
-        words = _keywords_of(item)
-        duplicate_of = _is_near_duplicate(words, kept)
-        if duplicate_of is not None:
-            duplicate_of["source_count"] = duplicate_of.get("source_count", 1) + 1
-            # Melde ei betre kjelde det same, skal saka arve det truverdet.
-            rank = ["loose", "normal", "wire", "primary"]
-            if rank.index(item["tier"]) > rank.index(duplicate_of["tier"]):
-                duplicate_of["tier"] = item["tier"]
-                duplicate_of["source"] = item["source"]
-            continue
+    nasdaq_tal = 0
+
+    def legg_til(item, words):
         kept.append((words, item))
         selected.append(item)
+
+    def er_duplikat(item, words):
+        duplicate_of = _is_near_duplicate(words, kept)
+        if duplicate_of is None:
+            return False
+        duplicate_of["source_count"] = duplicate_of.get("source_count", 1) + 1
+        rank = ["loose", "normal", "wire", "primary"]
+        if rank.index(item["tier"]) > rank.index(duplicate_of["tier"]):
+            duplicate_of["tier"] = item["tier"]
+            duplicate_of["source"] = item["source"]
+        return True
+
+    # Runde 1: fyll kvoten med dei beste Nasdaq-sakene.
+    for item in candidates:
+        if nasdaq_tal >= kvote:
+            break
+        if "nasdaq" not in item["assets"]:
+            continue
+        words = _keywords_of(item)
+        if er_duplikat(item, words):
+            continue
+        legg_til(item, words)
+        nasdaq_tal += 1
+
+    # Runde 2: resten av plassane til dei beste, uansett kategori.
+    for item in candidates:
         if len(selected) >= limit:
             break
+        if item in selected:
+            continue
+        words = _keywords_of(item)
+        if er_duplikat(item, words):
+            continue
+        legg_til(item, words)
 
+    # Sorter tilbake på poeng, så det viktigaste står øvst hjå Claude.
+    selected.sort(key=lambda x: x["rule_score"], reverse=True)
     return selected
 
 
