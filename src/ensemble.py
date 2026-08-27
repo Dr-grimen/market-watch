@@ -40,8 +40,8 @@ CROSS_ASSETS = {
 
 MIN_SAMPLE = 60          # under dette måler vi ikkje, vi gjettar
 
-# Same strenge krav som lysestake-mønstera blir haldne til. Vi testar 7
-# signal i to retningar - 14 testar - så ved z=1,5 er det venta at
+# Same strenge krav som lysestake-mønstera blir haldne til. Vi testar 9
+# signal i to retningar - 18 testar - så ved z=1,5 er det venta at
 # rundt to av dei ser gode ut på rein flaks. Å godta ein låg terskel her
 # medan candle-mønstera må ha z=3 ville vore dobbeltmoral, og verre:
 # det ville sleppt inn nettopp den typen tilfeldig funn som får eit
@@ -127,6 +127,42 @@ def build_signals(bars, cross):
             return None
         return "opp" if a > 0 else "ned"
 
+    def sweep(i):
+        """Liquidity sweep - frå ICT/Smart Money Concepts.
+
+        Prisen bryt 20-dagars topp eller botn intradag, men lukkar
+        tilbake innanfor. Teorien seier at store aktørar tek ut
+        stop-ordrar før dei snur marknaden.
+
+        Vi testa det: sweep av toppen gav t=2,1 på QQQ over éin dag,
+        men replikerte ikkje på NVDA eller over tre dagar. Og forteiknet
+        var MOTSETT av det teorien seier - etter ein sweep av toppen
+        gjekk det opp, ikkje ned. Difor står retninga her etter det som
+        er målt, og vekta blir avgjord av den same strenge testen som
+        alt anna: z over 2,5 og stabil i begge halvdelar.
+        """
+        if i < 21:
+            return None
+        topp20 = max(b["high"] for b in bars[i - 20:i])
+        botn20 = min(b["low"] for b in bars[i - 20:i])
+        if bars[i]["high"] > topp20 and bars[i]["close"] < topp20:
+            return "opp"      # målt retning, ikkje lærebok-retning
+        if bars[i]["low"] < botn20 and bars[i]["close"] > botn20:
+            return "opp"
+        return None
+
+    def fvg(i):
+        """Fair Value Gap. Testa og funne verdilaus - t under 1 på alle
+        fire testane - men lagt inn så målinga held fram automatisk.
+        Blir han verdt noko seinare, plukkar systemet det opp sjølv."""
+        if i < 3:
+            return None
+        if bars[i - 2]["high"] < bars[i]["low"]:
+            return "opp"
+        if bars[i - 2]["low"] > bars[i]["high"]:
+            return "ned"
+        return None
+
     def risikovilje(i):
         """VIXY ned = mindre frykt."""
         a = _pct_change(vixy, i)
@@ -142,6 +178,8 @@ def build_signals(bars, cross):
         ("Halvleiarar (SMH)", halvleiarar),
         ("Renter (TLT)", renter),
         ("Risikovilje (VIXY)", risikovilje),
+        ("Liquidity sweep", sweep),
+        ("Fair Value Gap", fvg),
     ]
 
 
