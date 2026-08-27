@@ -23,6 +23,9 @@ on:
         type: boolean
         default: false
 
+permissions:
+  contents: write        # trengst berre for livsteikn-commiten nedanfor
+
 jobs:
   koeyr:
     runs-on: ubuntu-latest
@@ -77,3 +80,39 @@ jobs:
             [ "$ATT" -lt 900 ] && sleep "$ATT" || sleep 900
           done
           echo "Økta ferdig etter $RUNDE rundar."
+
+      # --- Livsteikn til GitHub sjølv ---
+      # Dette er ikkje for Sondre sin del. Det er for GitHub sin:
+      # i eit offentleg repo blir planlagde workflows slått AV når det
+      # ikkje har vore aktivitet på 60 dagar. Er han bortreist i tre
+      # månader, ville heile verktøyet stilna utan varsel.
+      #
+      # Ein liten commit i veka nullstiller den klokka. Commiten blir
+      # gjord med GITHUB_TOKEN, som med vilje IKKJE utløyser nye
+      # workflows - så han held repoet levande utan å setje noko i gang.
+      - name: Hald repoet i live
+        if: always()
+        run: |
+          set -e
+          NO=$(date +%s)
+          SIST=0
+          [ -f .sist-aktiv ] && SIST=$(cat .sist-aktiv 2>/dev/null || echo 0)
+          ALDER=$(( (NO - SIST) / 86400 ))
+
+          if [ "$ALDER" -lt 7 ]; then
+            echo "Livsteikn er $ALDER dagar gammalt - treng ikkje nytt."
+            exit 0
+          fi
+
+          echo "$NO" > .sist-aktiv
+          git config user.name  "market-watch"
+          git config user.email "action@github.com"
+          git add .sist-aktiv
+          git commit -m "Livsteikn $(date -u +%Y-%m-%d) - held cron i live" || exit 0
+
+          # Andre økter kan ha pusha imedan. Prøv nokre gonger.
+          for FORSOEK in 1 2 3; do
+            git pull --rebase --autostash origin main && git push origin HEAD:main && break
+            sleep 5
+          done
+          echo "Livsteikn sendt."
