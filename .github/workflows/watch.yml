@@ -30,6 +30,14 @@ on:
     # 16:00 UTC = 18:00 norsk. Dekkjer resten av handelsdagen til stenging.
     - cron: "47 15 * * 1-5"
 
+  # Ringen startar oss att når han er ferdig. Det er dette som gjer at
+  # vi ikkje er avhengige av at GitHub fyrer cron: så lenge kjeda går,
+  # startar kvar økt den neste. Cron er berre der for å ta oss opp att
+  # dersom kjeda skulle ryke.
+  workflow_run:
+    workflows: ["ringen"]
+    types: [completed]
+
   # Køyr manuelt frå Actions-fana for å teste.
   workflow_dispatch:
     inputs:

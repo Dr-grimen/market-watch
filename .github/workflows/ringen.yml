@@ -1,0 +1,35 @@
+name: ringen
+
+# Denne gjer ingenting anna enn å eksistere.
+#
+# GitHub let ikkje ein workflow lytte på seg sjølv, så ein sjølvgåande
+# ring treng to ledd. "market-watch" gjer arbeidet; denne er berre det
+# andre leddet som sender ballen tilbake. Når market-watch er ferdig,
+# startar ringen; når ringen er ferdig, startar market-watch.
+#
+# Poenget: GitHub droppar planlagde jobbar, men han droppar ikkje ei
+# køyring som blir utløyst av at ei anna køyring vart ferdig. Cron
+# treng berre å fyre éin gong - resten held seg sjølv i gang.
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["market-watch"]
+    types: [completed]
+
+concurrency:
+  group: ringen
+  cancel-in-progress: false
+
+jobs:
+  vent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Pause før neste runde
+        run: |
+          # Ei kort pause så ringen ikkje snurrar i eitt kjør. Sjølve
+          # market-watch-økta varer fem timar, så dette leddet er berre
+          # eit lite mellomrom mellom øktene.
+          echo "Ringen: ventar litt, så startar market-watch på nytt."
+          sleep 120
