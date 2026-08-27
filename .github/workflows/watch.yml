@@ -44,6 +44,12 @@ on:
         options: [auto, briefing, preopen, normal]
         default: auto
 
+# Ein gjenbrukbar workflow kan ikkje be om meir løyve enn den som kallar
+# han. okt.yml treng contents: write for livsteikn-commiten, så det må
+# stå her òg - elles nektar GitHub å starte i det heile.
+permissions:
+  contents: write
+
 concurrency:
   group: market-watch
   cancel-in-progress: false
