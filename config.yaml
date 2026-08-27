@@ -19,6 +19,17 @@ cooldown_minutes: 180
 # Maks tal varsel per døgn, uansett. Sikring mot at rekninga eksploderer.
 max_alerts_per_day: 6
 
+# --- Kor raskt du får vite noko ---
+# Verktøyet sjekkar kvart 3. minutt. Alt utanom sjølve Claude-kallet er
+# gratis - prisar, intradag og 99 nyheitskjelder tek 20 sekund og kostar
+# ingenting. Difor kan vi sjekke ofte, og berre BRUKE PENGAR når noko
+# faktisk har endra seg sidan sist.
+#
+# Tre ting utløyser ei vurdering:
+eval_move_trigger_pct: 0.25    # prisen har flytta så mykje sidan sist
+eval_score_trigger: 25         # eller det kom ei sak tung nok i seg sjølv
+eval_max_gap_minutes: 30       # eller det er så lenge sidan at vi sjekkar uansett
+
 # Maks tal nyheitssaker som blir sendt til Claude i éin køyring.
 # Kvar sak kostar pengar, så dette er kostnadstaket ditt.
 max_items_to_llm: 12

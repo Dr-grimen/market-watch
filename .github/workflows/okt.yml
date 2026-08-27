@@ -81,12 +81,12 @@ jobs:
           RUNDE=0
           while [ "$(date +%s)" -lt "$SLUTT" ]; do
             RUNDE=$((RUNDE+1))
-            echo "--- runde $RUNDE  ($(TZ=Europe/Oslo date '+%H:%M norsk')) ---"
+            echo "--- runde $RUNDE  ($(TZ=Europe/Oslo date '+%H:%M:%S norsk')) ---"
             python -m src.main $ARGS
             # Ikkje sov lenger enn det som er att av økta.
             ATT=$(( SLUTT - $(date +%s) ))
             [ "$ATT" -le 0 ] && break
-            [ "$ATT" -lt 900 ] && sleep "$ATT" || sleep 900
+            [ "$ATT" -lt 180 ] && sleep "$ATT" || sleep 180
           done
           echo "Økta ferdig etter $RUNDE rundar."
 

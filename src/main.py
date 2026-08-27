@@ -655,6 +655,28 @@ def run(mode="auto", dry_run=False):
         state.save()
         return 1
 
+    # Porten som gjer rask sjekking mogleg. Har ingenting endra seg
+    # sidan sist vi spurde Claude, er svaret det same - og då er det
+    # ingen grunn til å betale for å få det på nytt.
+    nasdaq_no = None
+    for q in (quotes_by_asset.get("nasdaq") or []):
+        nasdaq_no = q.get("price")
+        break
+    toppscore = max((c.get("rule_score", 0) for c in candidates), default=0)
+    treng, grunn = state.treng_vurdering(
+        nasdaq_no,
+        config.get("eval_move_trigger_pct", 0.25),
+        config.get("eval_max_gap_minutes", 30),
+        toppscore,
+        config.get("eval_score_trigger", 25),
+    )
+    if not treng:
+        print("[main] ingenting nytt sidan sist vurdering - hoppar over (gratis)")
+        state.save()
+        return 0
+    print("[main] vurderer fordi: %s" % grunn)
+    state.record_eval(nasdaq_no)
+
     if tech_edge:
         context_note += (
             " Teknisk statistikk med tyngde: %s. Dette er bakgrunn, ikkje "

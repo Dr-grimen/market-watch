@@ -34,6 +34,12 @@ class State(object):
         self.last_uncertainty_date = data.get("last_uncertainty_date", "")
         self.reported_events = data.get("reported_events", {})  # "dato|namn" -> tid
         self.move_marks = data.get("move_marks", {})            # dato -> største nivå meldt
+        # Kva marknaden stod i da vi sist brukte pengar paa ei vurdering.
+        # Utan dette kan vi ikkje vite om noko har endra seg sidan sist,
+        # og daa maa vi enten spoerje Claude kvar gong (dyrt) eller
+        # sjeldan (treigt). Med dette kan vi sjekke ofte og spoerje sjeldan.
+        self.last_eval_price = data.get("last_eval_price")
+        self.last_eval_time = data.get("last_eval_time", 0)
         self.lean_log = data.get("lean_log", [])          # tidspunkt
         self.last_lean = data.get("last_lean", {})        # retning -> tidspunkt
 
@@ -73,6 +79,8 @@ class State(object):
             "last_uncertainty_date": self.last_uncertainty_date,
             "reported_events": self.reported_events,
             "move_marks": self.move_marks,
+            "last_eval_price": self.last_eval_price,
+            "last_eval_time": self.last_eval_time,
             "lean_log": self.lean_log,
             "last_lean": self.last_lean,
             "feed_health": self.feed_health,
@@ -154,6 +162,38 @@ class State(object):
     def record_move(self, today, level):
         # Nullstill for nye dagar, så fila ikkje veks.
         self.move_marks = {today: float(level)}
+
+    def treng_vurdering(self, pris_no, flytt_pct, maks_gap_min, toppscore, score_grense):
+        """Har det hendt nok sidan sist til aa bruke pengar paa ei vurdering?
+
+        Tre ting kan utloeyse det. Prisen har flytta seg meiningsfullt,
+        det har komme ei sak som er tung nok i seg sjolv, eller det er
+        saa lenge sidan sist at vi boer sjekke uansett.
+
+        Poenget er ikkje aa spare pengar for seg sjolv. Poenget er at
+        naar vi IKKJE brukar pengar paa aa vurdere det same om att, har
+        vi raad til aa sjekke fem gonger saa ofte - og daa oppdagar vi
+        ei roersle innan tre minutt i staden for femten.
+        """
+        import time as _t
+        no = _t.time()
+        gap = (no - self.last_eval_time) / 60.0 if self.last_eval_time else 9999
+
+        if gap >= maks_gap_min:
+            return True, "%.0f min sidan sist" % gap
+        if toppscore >= score_grense:
+            return True, "tung sak (score %d)" % toppscore
+        if self.last_eval_price and pris_no:
+            flytt = abs(pris_no / self.last_eval_price - 1) * 100
+            if flytt >= flytt_pct:
+                return True, "prisen har flytta %.2f %%" % flytt
+        return False, ""
+
+    def record_eval(self, pris):
+        import time as _t
+        self.last_eval_time = _t.time()
+        if pris:
+            self.last_eval_price = pris
 
     def leans_today(self):
         cutoff = time.time() - 60 * 60 * 24
