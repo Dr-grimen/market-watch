@@ -1,0 +1,15 @@
+name: kjede-a
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["kjede-b"]
+    types: [completed]
+jobs:
+  ledd:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - run: |
+          echo "A koeyrer. utloeyst av: ${{ github.event_name }}"
+          date -u '+%H:%M:%S UTC'
+          sleep 20
