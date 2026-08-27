@@ -632,11 +632,19 @@ def run(mode="auto", dry_run=False):
             " Teknisk statistikk med tyngde: %s. Dette er bakgrunn, ikkje "
             "eit varsel i seg sjølv." % tech_edge[2])
 
-    verdict = analyze.evaluate(candidates, price_summary, context_note, api_key,
-                               world_summary=world_summary,
-                               technical_summary=technical_summary,
-                               calendar_summary=calendar_summary,
-                               ensemble_summary=ensemble_summary)
+    try:
+        verdict = analyze.evaluate(candidates, price_summary, context_note, api_key,
+                                   world_summary=world_summary,
+                                   technical_summary=technical_summary,
+                                   calendar_summary=calendar_summary,
+                                   ensemble_summary=ensemble_summary)
+    except analyze.FatalKontoFeil as exc:
+        # Dette går ikkje over av seg sjølv. Meldinga skal seie kva
+        # Sondre må gjere, ikkje kva som teknisk gjekk gale - han sit
+        # kanskje på ei strand og har ingen anna informasjon enn denne.
+        _handle_failure(state, config, str(exc), dry_run)
+        state.save()
+        return 1
     if verdict is None:
         _handle_failure(state, config, "Claude-kallet feila", dry_run)
         state.save()

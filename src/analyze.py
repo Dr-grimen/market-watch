@@ -12,7 +12,43 @@ import anthropic
 
 from . import technicals
 
-MODEL = "claude-haiku-4-5"
+
+class FatalKontoFeil(Exception):
+    """Noko Sondre må ordne sjølv - tom konto eller død nøkkel."""
+
+# Modellar blir pensjonerte. Ikkje ofte, men det skjer - og eit verktøy
+# som skal gå i årevis utan tilsyn kan ikkje stoppe fordi eitt namn
+# forsvann. Difor ei liste: fyrste som svarer, blir brukt.
+MODELS = [
+    "claude-haiku-4-5",     # billegast, og nok til denne oppgåva
+    "claude-sonnet-4-6",    # reserve dersom haiku blir pensjonert
+    "claude-opus-4-8",      # siste utveg - dyrare, men betre enn stille
+]
+MODEL = MODELS[0]
+
+# Feil som ikkje går over av seg sjølv. Skil dei frå midlertidige
+# problem, for meldinga til Sondre må seie kva HAN må gjere.
+# Nøklane er dei orda Anthropic faktisk brukar i feilmeldingane sine.
+# "authentication" åleine er ikkje nok - ved død nøkkel skriv dei
+# "invalid x-api-key", og då må vi kjenne igjen DET.
+FATALE = [
+    (("credit balance", "insufficient credit", "billing"),
+     "Anthropic-kontoen er tom for pengar. Fyll på, så går alt av seg sjølv igjen."),
+    (("x-api-key", "authentication_error", "invalid api key"),
+     "API-nøkkelen blir avvist - han er truleg sletta eller utgått. "
+     "Lag ein ny på console.anthropic.com, så legg eg han inn."),
+    (("permission_error", "not allowed"),
+     "API-nøkkelen manglar løyve til modellen."),
+]
+
+
+def forklar_feil(exc):
+    """Kva Sondre må gjere, ikkje kva som teknisk gjekk gale."""
+    tekst = (str(getattr(exc, "message", "") or "") + " " + str(exc)).lower()
+    for ord_liste, forklaring in FATALE:
+        if any(o in tekst for o in ord_liste):
+            return forklaring
+    return None
 
 SYSTEM_PROMPT = """Du er ein nøktern marknadsanalytikar for eit privat varslingsverktøy.
 
@@ -329,9 +365,10 @@ def _validate(data):
     }
 
 
-def _call(client, material, use_schema, system_prompt=SYSTEM_PROMPT):
+def _call(client, material, use_schema, system_prompt=SYSTEM_PROMPT,
+          model=None):
     kwargs = {
-        "model": MODEL,
+        "model": model or MODEL,
         "max_tokens": 800,
         "system": system_prompt,
         "messages": [{"role": "user", "content": material}],
@@ -362,20 +399,32 @@ def evaluate(candidates, price_summary, context_note="", api_key=None,
                                calendar_summary, ensemble_summary)
     system_prompt = system_prompt or SYSTEM_PROMPT
 
-    for use_schema in (True, False):
+    # Kvar modell blir prøvd med begge svarformata før vi går vidare.
+    freistingar = [(m, sk) for m in MODELS for sk in (True, False)]
+
+    for model, use_schema in freistingar:
         try:
-            response = _call(client, material, use_schema, system_prompt)
+            response = _call(client, material, use_schema, system_prompt, model)
         except anthropic.RateLimitError:
             print("[analyze] rate limit - hoppar over denne køyringa")
             return None
         except anthropic.APIStatusError as exc:
+            # Er kontoen tom eller nøkkelen død, hjelper det ikkje å
+            # prøve ein annan modell. Gi opp med ei forklaring Sondre
+            # kan gjere noko med.
+            fatal = forklar_feil(exc)
+            if fatal:
+                print("[analyze] %s" % fatal)
+                raise FatalKontoFeil(fatal)
             # 400 på det strukturerte kallet tyder som regel at modellen
             # ikkje støttar output_config. Prøv klartekst-JSON i staden.
             if use_schema and exc.status_code == 400:
-                print("[analyze] strukturert output avvist - prøver klartekst-JSON")
+                continue
+            if exc.status_code == 404:
+                print("[analyze] modellen %s finst ikkje lenger - prøver neste" % model)
                 continue
             print("[analyze] API-feil %s: %s" % (exc.status_code, exc.message))
-            return None
+            continue
         except anthropic.APIConnectionError as exc:
             print("[analyze] nettverksfeil: %s" % exc)
             return None
@@ -389,8 +438,8 @@ def evaluate(candidates, price_summary, context_note="", api_key=None,
             return verdict
 
         if use_schema:
-            print("[analyze] uventa svarformat - prøver klartekst-JSON")
             continue
-        print("[analyze] kunne ikkje tolke svaret som JSON")
+        print("[analyze] kunne ikkje tolke svaret frå %s" % model)
 
+    print("[analyze] ingen av dei %d modellane svarte brukbart" % len(MODELS))
     return None
