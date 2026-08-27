@@ -51,7 +51,11 @@ permissions:
   contents: write
 
 concurrency:
-  group: market-watch
+  # Namnet er bytt fordi den gamle gruppa laaste seg etter mange
+  # tvangsavbrytingar under feilsoeking - nye koeyringar blei staaande
+  # 'pending' i det uendelege sjolv om koea var tom. Ei ny gruppe er
+  # rein. Verdt aa hugse dersom det skjer igjen.
+  group: market-watch-v2
   cancel-in-progress: false
 
 jobs:
