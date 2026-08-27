@@ -6,16 +6,23 @@ on:
     # Koden les sjølv av lokal tid og avgjer modus, så drifta over sommartid
     # gjer ingenting - køyringar utanfor aktiv tid avsluttar seg sjølve.
 
-    # Kjernetid: kvart 20. minutt. 11-21 UTC = 13-23 norsk tid om sommaren,
-    # 12-22 om vinteren. Dekkjer før-opning, heile den amerikanske
-    # handelsdagen og stenginga.
-    - cron: "*/20 11-21 * * 1-5"
+    # MERK OM PÅLITELEGHEIT: GitHub køyrer planlagde jobbar "best effort".
+    # Ber du om for mange, blir dei struper eller droppa heilt - vi bad om
+    # 45 i døgnet og fekk 2. Difor er dette skore ned til det som trengst,
+    # med god luft mellom kvar. Færre og sikrare slår fleire og tapte.
 
-    # Morgon: kvart 20. minutt fra 06 til 09 UTC. Morgonmeldinga skal ut
-    # 08:40 norsk tid, og det er 06:40 UTC om sommaren og 07:40 om
-    # vinteren. Vi dekkjer begge, og koden sjolv slepp berre den rette
-    # gjennom - state.json hugsar at ho alt er sendt.
-    - cron: "*/20 6-9 * * 1-5"
+    # Handelsdagen: kvar time. 12-21 UTC = 14-23 norsk tid om sommaren.
+    - cron: "0 12-21 * * 1-5"
+
+    # Morgonmeldinga skal ut 08:40 norsk tid = 06:40 UTC om sommaren,
+    # 07:40 om vinteren. Fire forsøk dekkjer begge, og koden slepp berre
+    # den rette gjennom - state.json hugsar at ho alt er sendt.
+    #
+    # Blir alle fire droppa, tek etterslep-logikken det: fyrste køyring
+    # etter det sender morgonmeldinga likevel, heilt fram til klokka 15,
+    # med ærleg tekst om at ho er sein. Det er forskjellen på ei sein
+    # melding og inga melding.
+    - cron: "20,40 6,7 * * 1-5"
 
   # Køyr manuelt frå Actions-fana for å teste.
   workflow_dispatch:
