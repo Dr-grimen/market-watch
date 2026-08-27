@@ -40,7 +40,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 355          # 5t55m - GitHub kappar ved 6 timar
     steps:
+      # ref: main med vilje. Utan dette hentar kvar økt den koden som
+      # var der da KØYRINGA starta, og ei køyring varer i 22 timar. Ei
+      # rettelse pusha klokka 10 ville då ikkje vore i drift før neste
+      # dag. Med dette hentar kvar av dei fire øktene nyaste kode når
+      # ho startar, så systemet oppdaterer seg sjølv kvar 5,5. time.
       - uses: actions/checkout@v4
+        with:
+          ref: main
 
       - uses: actions/setup-python@v5
         with:
