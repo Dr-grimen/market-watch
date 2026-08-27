@@ -1,0 +1,21 @@
+name: kjede-test
+
+# Kan ei koeyring starte den neste heilt av seg sjolv? Verkar dette,
+# treng vi ikkje GitHub sin cron i det heile - han maa berre fyre EIN
+# gong, og saa held kjeda seg sjolv i live.
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["kjede-test"]
+    types: [completed]
+
+jobs:
+  ledd:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Kven starta meg
+        run: |
+          echo "utloeyst av: ${{ github.event_name }}"
+          echo "tid: $(date -u '+%H:%M:%S UTC')"
+          sleep 30
