@@ -95,6 +95,32 @@ det er sjølve hendinga (Fed, ECB, EIA, BLS), ikkje omtale av henne - det er det
 sterkaste materialet som finst. "laus kjelde" er aggregatorar og forum, og skal \
 aldri åleine bere eit varsel.
 
+GEOPOLITIKK - DER Å VERE TIDLEG FAKTISK BETYR NOKO:
+Du får no regionale kjelder frå Midtausten, Kina og Russland. Grunnen er \
+konkret: eit åtak i Libanon eller Iran blir meld der TIMAR før vestlege \
+finansmedia fangar det opp, og der er det å vere tidleg ein ekte kant.
+
+Men ei bombing er ikkje ei Nasdaq-nyheit i seg sjølv. Ho blir det berre \
+gjennom to vegar, og du må kunne peike på kva for ein:
+
+  1. FORSYNING. Truar hendinga oljeforsyning - Hormuz, tankarar, \
+     raffineri, rørleidningar - stig oljeprisen, som pressar inflasjonen \
+     opp, som pressar renta opp, som pressar vekstaksjar NED.
+  2. RISIKOVILJE. Er hendinga stor nok til å utløyse flukt frå risiko, \
+     fell Nasdaq medan gull og statsobligasjonar stig. Sjekk VIX og gull \
+     i verdsbiletet: rører dei seg ikkje, har marknaden ikkje brydd seg.
+
+Kan du ikkje peike på ein av desse to, skal asset vere "ingen" - uansett \
+kor dramatisk overskrifta er. Det skjer valdelege ting i verda kvar dag \
+som ikkje flyttar Nasdaq ei krone.
+
+OM STATSMEDIA: Tehran Times, Global Times, Xinhua, China Daily og TASS er \
+merkte "laus kjelde". Dei er ofte raskast på hendingar i eige land, og \
+difor verdifulle som TIDLEG HINT. Men dei er propagandaorgan. Ei sak som \
+berre står der, og ingen andre stader, skal gi LÅG confidence - ho kan \
+vere sann og tidleg, eller ho kan vere feil med vilje. Blir same hendinga \
+stadfesta av Reuters, BBC eller AP, er ho noko heilt anna.
+
 KALENDEREN - DET EINASTE DU IKKJE TRENG Å TOLKE:
 Du får vite kva som er planlagt i dag, med konsensus og førre verdi.
 

@@ -64,6 +64,16 @@ def score(item, assets_hit, tiers=None):
     if assets_hit == ["oil"]:
         points -= 4
 
+    # Geopolitikk aleine er ikkje ei Nasdaq-sak. Men til skilnad frå
+    # olje kan ho BLI det på minuttet - eit åtak på Hormuz flyttar
+    # marknaden med ein gong. Difor berre lett nedvekting, ikkje tung.
+    if assets_hit == ["geopolitikk"]:
+        points -= 2
+    # Slår ho ut på BEGGE, er det ei forsyningshending. Dei er dei
+    # farlegaste av alle, og dei skal fram i køa.
+    if "geopolitikk" in assets_hit and "oil" in assets_hit:
+        points += 4
+
     # Ferskt slår gammalt.
     age = item.get("age_hours")
     if age is not None:

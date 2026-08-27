@@ -190,6 +190,13 @@ source_tiers:
     - Investing
     - Yahoo Finance
     - Hacker News
+    # Statsmedia: ofte raskast på hendingar i eige land, men dei er
+    # propagandaorgan. Verdifulle som tidleg hint, aldri som einaste kjelde.
+    - Tehran Times
+    - Global Times
+    - Xinhua
+    - China Daily
+    - TASS
 
 # Maks alder på ei sak før ho blir ignorert.
 max_news_age_hours: 12
@@ -373,6 +380,64 @@ feeds:
   - name: GN Sentralbank
     url: https://news.google.com/rss/search?q=when:12h+central+bank+rate+ECB+OR+BOJ+OR+BOE&hl=en-US&gl=US&ceid=US:en
 
+  # --- Verdsovervaking: der ting skjer FYRST ---
+  # Sondre sitt poeng, og det er eit godt eit: bombing i Libanon eller
+  # Iran blir meld av regionale kjelder timar før vestlege finansmedia
+  # fangar det opp. Ein geopolitisk sjokk treffer Nasdaq gjennom
+  # risikovilje og oljepris - og der er det å vere tidleg ein EKTE kant,
+  # i motsetnad til chartmønster.
+  #
+  # MERK: fleire av desse er statsmedia (Xinhua, Global Times, TASS,
+  # Tehran Times). Dei er ofte raske, men dei er propagandaorgan. Difor
+  # ligg dei som "loose" i source_tiers - dei kan gi eit tidleg hint,
+  # men skal aldri åleine bere eit varsel.
+  - name: Jerusalem Post
+    url: https://www.jpost.com/rss/rssfeedsfrontpage.aspx
+  - name: Middle East Monitor
+    url: https://www.middleeastmonitor.com/feed/
+  - name: Al Monitor
+    url: https://www.al-monitor.com/rss
+  - name: Anadolu
+    url: https://www.aa.com.tr/en/rss/default?cat=live
+  - name: BBC Midtausten
+    url: https://feeds.bbci.co.uk/news/world/middle_east/rss.xml
+  - name: BBC Asia
+    url: https://feeds.bbci.co.uk/news/world/asia/rss.xml
+  - name: France24 Midtausten
+    url: https://www.france24.com/en/middle-east/rss
+  - name: DW World
+    url: https://rss.dw.com/rdf/rss-en-world
+  - name: Tehran Times
+    url: https://www.tehrantimes.com/rss
+  - name: Global Times
+    url: https://www.globaltimes.cn/rss/outbrain.xml
+  - name: Xinhua
+    url: http://www.xinhuanet.com/english/rss/worldrss.xml
+  - name: China Daily
+    url: http://www.chinadaily.com.cn/rss/world_rss.xml
+  - name: TASS
+    url: https://tass.com/rss/v2.xml
+  - name: Moscow Times
+    url: https://www.themoscowtimes.com/rss/news
+  - name: Reuters Verda
+    url: https://news.google.com/rss/search?q=when:3h+site:reuters.com+(strike+OR+attack+OR+missile+OR+explosion)&hl=en-US&gl=US&ceid=US:en
+  - name: GN Iran
+    url: https://news.google.com/rss/search?q=when:6h+Iran+strike+OR+attack+OR+missile+OR+nuclear&hl=en-US&gl=US&ceid=US:en
+  - name: GN Israel-Libanon
+    url: https://news.google.com/rss/search?q=when:6h+Israel+Lebanon+OR+Hezbollah+strike&hl=en-US&gl=US&ceid=US:en
+  - name: GN Raudehavet
+    url: https://news.google.com/rss/search?q=when:12h+Red+Sea+Houthi+ship+attack&hl=en-US&gl=US&ceid=US:en
+  - name: GN Taiwan
+    url: https://news.google.com/rss/search?q=when:12h+Taiwan+China+military+tension&hl=en-US&gl=US&ceid=US:en
+  - name: GN Ukraina-energi
+    url: https://news.google.com/rss/search?q=when:12h+Ukraine+Russia+refinery+OR+pipeline+strike&hl=en-US&gl=US&ceid=US:en
+  - name: GN Eksplosjon
+    url: https://news.google.com/rss/search?q=when:6h+explosion+OR+blast+OR+bombing+capital&hl=en-US&gl=US&ceid=US:en
+  - name: GN Sanksjonar
+    url: https://news.google.com/rss/search?q=when:12h+new+sanctions+announced+treasury&hl=en-US&gl=US&ceid=US:en
+  - name: GN Breaking marknad
+    url: https://news.google.com/rss/search?q=when:3h+breaking+market+OR+stocks+plunge+OR+surge&hl=en-US&gl=US&ceid=US:en
+
 # Reddit-kjelder (gratis JSON-endepunkt).
 reddit_subs:
   - stocks
@@ -415,6 +480,31 @@ keywords:
     - tariff
     - recession
     - futures
+  geopolitikk:
+    # Hendingar som treffer Nasdaq gjennom risikovilje og oljepris.
+    # Ein bombing i Libanon er ikkje ei Nasdaq-nyheit i seg sjølv - men
+    # ho blir det dersom ho truar forsyning eller utløyser flukt frå risiko.
+    - strike
+    - airstrike
+    - missile
+    - drone attack
+    - explosion
+    - bombing
+    - invasion
+    - ceasefire
+    - escalation
+    - retaliation
+    - nuclear
+    - hezbollah
+    - houthi
+    - hamas
+    - idf
+    - tehran
+    - taiwan
+    - blockade
+    - shipping attack
+    - tanker
+    - war
   oil:
     - oil
     - crude
