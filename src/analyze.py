@@ -165,6 +165,24 @@ er opp. Skriv heller at marknaden truleg opnar opp, og at retninga
 derifrå er open. Blandar du dei to saman, blir verktøyet verdilaust
 samstundes som det ser treffsikkert ut.
 
+BNF-OPPSETTET - DET EINASTE MED KONSISTENT FORTEIKN:
+Somme dagar står det "BNF-OPPSETT SLO UT I DAG" i materialet. Det er den \
+dokumenterte metoden til Takashi Kotegawa, som gjekk frå 13 600 til over \
+150 millionar dollar åleine: kjøp når kursen har falle langt under \
+25-dagars snitt og RSI er oversolgt, hald nokre dagar.
+
+Vi har testa han på fire instrument. Vær presis om kva som kom ut:
+- TREFFPROSENTEN var ikkje betre enn normalt. Kor ofte det gjekk opp var \
+som ein kva som helst dag.
+- AVKASTNINGA var derimot konsistent høgare - elleve av tolv oppsett gav \
+meir enn eit tilfeldig kjøp, mellom +0,2 og +1,8 prosentpoeng.
+- Ingen nådde t=2. Det er ikkje bevist.
+
+Så: slår oppsettet ut, er det eit svakt argument for at eit fall er \
+overdrive og at ei motrørsle er meir sannsynleg enn vanleg. Det kan løfte \
+confidence litt. Det kan ALDRI åleine ta deg over terskelen, og det seier \
+ingenting om retninga i morgon - berre om storleiken over nokre dagar.
+
 CHARTLESING - OG EI MÅLING DU MÅ TA INNOVER DEG:
 Vi har testa deg. 60 tilfeldige historiske dagar, der du fekk NØYAKTIG det tekniske materialet under - chart, indikatorar, mønster, signalsamling, basisrate - og skulle seie opp eller ned om neste dag.
 

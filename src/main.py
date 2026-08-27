@@ -495,6 +495,14 @@ def run(mode="auto", dry_run=False):
     if reports:
         technical_summary = "\n".join(technicals.format_report(r) for r in reports)
         chart_summary = technicals.short_summary(reports[0])
+
+        # BNF-oppsettet. Slår sjeldan ut - nokre gonger i året - men det
+        # er det einaste vi har målt der forteiknet har vore konsistent.
+        bnf = technicals.bnf_setup(history.fetch_daily("QQQ"))
+        if bnf:
+            technical_summary += "\n\n" + technicals.format_bnf(bnf, "QQQ")
+            print("[main] BNF-oppsett aktivt: %.1f %% under snitt, RSI %.0f"
+                  % (bnf["avvik"], bnf["rsi"]))
         tech_edge = technicals.strongest_edge(reports)
 
         # Kva rørsla i natt faktisk tyder. Dette er det næraste vi kjem

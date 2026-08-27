@@ -855,3 +855,107 @@ def short_summary(report):
     if base is not None:
         lines.append("  Basis: %s av alle dagar går opp uansett" % _pct(base))
     return "\n".join(lines)
+
+
+# ------------------------------------------------------- BNF-oppsettet
+
+# Takashi Kotegawa ("BNF") gjekk frå 13 600 til over 150 millionar dollar
+# åleine, og metoden hans er dokumentert: kjøp når kursen har falle langt
+# under 25-dagars snitt, stadfest at RSI er oversolgt, hald i 2-6 dagar.
+# Han sa sjølv at han handla ANOMALIEN, ikkje spådommen - han prøvde ikkje
+# å gjette kva marknaden skulle gjere, berre å kjøpe når han hadde rørt
+# seg unormalt langt.
+#
+# Vi testa det på QQQ, NVDA, TSLA og AMD. Resultatet er verdt å vere
+# presis om, fordi det skil seg frå alt anna vi har målt:
+#
+#   TREFFPROSENTEN er ikkje betre enn basis. Null av 34 kombinasjonar
+#   nådde z=2 på "gjekk det opp".
+#
+#   AVKASTNINGA er derimot konsistent høgare. Elleve av tolv oppsett gav
+#   meir enn eit tilfeldig kjøp med same haldetid, mellom +0,2 og +1,8
+#   prosentpoeng. QQQ på -5 % med fire dagars hald var sterkast: +1,04 pp
+#   over tilfeldig, t=1,8.
+#
+# Ingen av dei nådde t=2, så dette er IKKJE bevist. Og dei fire
+# instrumenta rører seg saman, så det er ikkje fire uavhengige testar -
+# det er nærmare éin test gjort fire gonger.
+#
+# Men det er det einaste i heile dette prosjektet der forteiknet har
+# vore konsistent. Difor blir det rapportert når det slår ut, med tala
+# ved sida av, slik at modellen kan sjå både funnet og svakheita.
+
+BNF_AVVIK = 5.0        # kor langt under 25-dagars snitt
+BNF_RSI = 40.0         # og oversolgt samstundes
+BNF_HALD = 4           # dagar, slik han sjølv handla
+
+
+def bnf_setup(bars):
+    """Slår BNF-oppsettet ut på siste ferdige dag?
+
+    Returnerer None når det ikkje gjer det, som er det vanlege - dette
+    skjer nokre få gonger i året, ikkje kvar veke.
+    """
+    if not bars or len(bars) < 60:
+        return None
+
+    closes = [b["close"] for b in bars]
+    snitt25 = sma(closes, 25)
+    rsi14 = rsi(closes, 14)
+    i = len(bars) - 1
+    if snitt25[i] is None or rsi14[i] is None:
+        return None
+
+    avvik = (closes[i] / snitt25[i] - 1.0) * 100.0
+    if avvik > -BNF_AVVIK or rsi14[i] > BNF_RSI:
+        return None
+
+    # Kva har hendt dei førre gongane? Rekna på nytt kvar gong, så
+    # tala følgjer instrumentet og ikkje ein gammal påstand.
+    treff = []
+    sist = -99
+    for j in range(25, len(closes) - BNF_HALD):
+        if snitt25[j] is None or rsi14[j] is None:
+            continue
+        if (closes[j] / snitt25[j] - 1.0) * 100.0 > -BNF_AVVIK:
+            continue
+        if rsi14[j] > BNF_RSI or j - sist < BNF_HALD:
+            continue
+        sist = j
+        treff.append((closes[j + BNF_HALD] / closes[j] - 1.0) * 100.0)
+
+    tilfeldig = [(closes[j + BNF_HALD] / closes[j] - 1.0) * 100.0
+                 for j in range(25, len(closes) - BNF_HALD, BNF_HALD)]
+    if len(treff) < 20 or not tilfeldig:
+        return None
+
+    m_sig = sum(treff) / len(treff)
+    m_alle = sum(tilfeldig) / len(tilfeldig)
+    return {
+        "avvik": avvik,
+        "rsi": rsi14[i],
+        "n": len(treff),
+        "snitt": m_sig,
+        "basis": m_alle,
+        "meirverdi": m_sig - m_alle,
+        "hald": BNF_HALD,
+    }
+
+
+def format_bnf(oppsett, label="Nasdaq"):
+    if not oppsett:
+        return ""
+    return (
+        "BNF-OPPSETT SLO UT I DAG (%s):\n"
+        "  Kursen ligg %.1f %% under 25-dagars snitt, RSI er %.0f.\n"
+        "  Dette har hendt %d gonger før. Over %d dagar gav det %+.2f %% i "
+        "snitt, mot %+.2f %% for eit tilfeldig kjøp - altså %+.2f "
+        "prosentpoeng meir.\n"
+        "  MERK: skilnaden er i STORLEIK, ikkje i treffprosent. Kor ofte "
+        "det går opp er som normalt. Og han er ikkje statistisk bevist "
+        "(t under 2) - forteiknet har berre vore konsistent på tvers av "
+        "fleire instrument. Det er eit argument for å vege oppsettet litt, "
+        "ikkje for å vere sikker."
+    ) % (label, oppsett["avvik"], oppsett["rsi"], oppsett["n"],
+         oppsett["hald"], oppsett["snitt"], oppsett["basis"],
+         oppsett["meirverdi"])
