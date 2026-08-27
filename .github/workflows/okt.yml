@@ -1,0 +1,79 @@
+name: okt
+
+# Éi økt: køyrer verktøyet om att med jamne mellomrom i inntil 5,5 timar.
+#
+# Dette er ein gjenbrukbar byggjekloss. Grunnen til at han finst: GitHub
+# gir kvar JOBB inntil seks timar, men kvar KØYRING inntil 35 dagar. Ei
+# køyring med fire slike jobbar etter kvarandre held difor gåande i 22
+# timar - frå éi einaste cron-fyring.
+#
+# Det er heile forskjellen på eit verktøy som er avhengig av at GitHub
+# fyrer cron riktig, og eitt som berre treng at han fyrer i det heile.
+
+on:
+  workflow_call:
+    inputs:
+      timar:
+        type: number
+        default: 5.5
+      mode:
+        type: string
+        default: auto
+      dry_run:
+        type: boolean
+        default: false
+
+jobs:
+  koeyr:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355          # 5t55m - GitHub kappar ved 6 timar
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Installer avhengigheiter
+        run: pip install -r requirements.txt
+
+      # Kvar jobb har sitt eige filsystem, så tilstanden må hentast inn
+      # på nytt. Nøkkelen er unik per jobb (ein cache-nøkkel kan berre
+      # skrivast éin gong), men restore-keys finn den ferskaste.
+      - name: Hent tidlegare tilstand
+        uses: actions/cache@v4
+        with:
+          path: |
+            state.json
+            cache
+          key: mw-state-${{ github.run_id }}-${{ github.job }}-${{ github.run_attempt }}-${{ inputs.timar }}
+          restore-keys: |
+            mw-state-
+            market-watch-state-
+
+      - name: Overvak
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          NOTIFIER: telegram
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          set +e
+          ARGS="--mode ${{ inputs.mode }}"
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+
+          SLUTT=$(( $(date +%s) + $(python -c "print(int(${{ inputs.timar }}*3600))") ))
+          RUNDE=0
+          while [ "$(date +%s)" -lt "$SLUTT" ]; do
+            RUNDE=$((RUNDE+1))
+            echo "--- runde $RUNDE  ($(TZ=Europe/Oslo date '+%H:%M norsk')) ---"
+            python -m src.main $ARGS
+            # Ikkje sov lenger enn det som er att av økta.
+            ATT=$(( SLUTT - $(date +%s) ))
+            [ "$ATT" -le 0 ] && break
+            [ "$ATT" -lt 900 ] && sleep "$ATT" || sleep 900
+          done
+          echo "Økta ferdig etter $RUNDE rundar."

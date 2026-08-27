@@ -1,56 +1,45 @@
 name: market-watch
 
+# Overvakar Nasdaq og sender melding på Telegram.
+#
+# OM PÅLITELEGHEIT - dette er heile grunnen til at fila ser ut som ho gjer:
+#
+# GitHub køyrer planlagde jobbar "best effort". Dei blir forseinka når
+# lasta er høg, og droppa heilt når ho er høg nok. Fyrste utgåva av dette
+# bad om 45 fyringar i døgnet og fekk 2. Sondre venta to dagar på ei
+# melding som aldri kom.
+#
+# Løysinga er å slutte å be om mange fyringar, og i staden gjere kvar
+# fyring lang. GitHub gir kvar JOBB seks timar, men kvar KØYRING 35
+# dagar. Fire jobbar etter kvarandre held difor gåande i 22 timar frå
+# éi einaste fyring - og ei køyring som ALT går, blir ikkje droppa.
+#
+# I tillegg startar "ringen" oss om att når vi er ferdige, så to slike
+# køyringar kjeder seg (GitHub tillet tre nivå workflow_run).
+#
+# Til saman: éi cron-fyring gir over eit døgn med dekning.
+
 on:
   schedule:
-    # MERK KLOKKESLETTA: ingen av dei står på heil eller halv time.
-    # GitHub sin eigen dokumentasjon seier at lasta er høgast ved starten
-    # av kvar time, og at køa då kan bli droppa heilt. Difor ligg alle
-    # fyringane på skeive minutt - 37, 07, 23, 13, 47. Det er gratis, og
-    # det er den einaste justeringa GitHub sjølv tilrår.
-    #
-    # GitHub koeyrer planlagde jobbar "best effort", og droppar dei naar
-    # frekvensen er hoeg - vi bad om 45 i doegnet og fekk 2. Difor ber vi
-    # no om berre TRE, og lar kvar av dei koeyre ei lang oekt som sjekkar
-    # sjolv kvart kvarter. Ein cron som fyrer 3 gonger blir honorert;
-    # ein som fyrer 45 blir det ikkje.
-    #
-    # Morgonen har TRE fyringar, ikkje éin. Grunnen er at morgonmeldinga
-    # er den einaste Sondre faktisk ventar på kvar dag - og ein droppa
-    # cron der tyder ingen melding i det heile. Kvar av dei tre dekkjer
-    # 08:40 norsk tid, så det held at éin av dei kjem gjennom.
-    #
-    # 05:30 UTC = 07:30 norsk. Dekkjer 07:30-12:30.
-    - cron: "37 5 * * 1-5"
-    # 06:00 UTC = 08:00 norsk. Dekkjer 08:00-13:00.
-    - cron: "7 6 * * 1-5"
-    # 06:30 UTC = 08:30 norsk. Siste sjanse før 08:40.
-    - cron: "23 6 * * 1-5"
-    # 11:00 UTC = 13:00 norsk. Dekkjer amerikansk opning 15:30 og utover.
-    - cron: "13 11 * * 1-5"
-    # 16:00 UTC = 18:00 norsk. Dekkjer resten av handelsdagen til stenging.
-    - cron: "47 15 * * 1-5"
+    # Skeive minutt med vilje. GitHub sin dokumentasjon seier lasta er
+    # høgast ved starten av kvar time, og at køa då kan bli droppa.
+    - cron: "37 5 * * 1-5"     # 07:37 norsk - morgonmeldinga 08:40
+    - cron: "13 11 * * 1-5"    # 13:13 norsk - amerikansk opning
+    - cron: "47 15 * * 1-5"    # 17:47 norsk - ettermiddag
 
-  # Ringen startar oss att når han er ferdig. Det er dette som gjer at
-  # vi ikkje er avhengige av at GitHub fyrer cron: så lenge kjeda går,
-  # startar kvar økt den neste. Cron er berre der for å ta oss opp att
-  # dersom kjeda skulle ryke.
+  # Ringen startar oss att når han er ferdig.
   workflow_run:
     workflows: ["ringen"]
     types: [completed]
 
-  # Køyr manuelt frå Actions-fana for å teste.
   workflow_dispatch:
     inputs:
       dry_run:
         description: "Ikkje send melding, berre vis kva som ville blitt sendt"
         type: boolean
         default: true
-      long_run:
-        description: "Start ei lang økt no (5 timar, sjekk kvart kvarter)"
-        type: boolean
-        default: false
       mode:
-        description: "briefing tvingar fram morgonmeldinga (for testing)"
+        description: "briefing tvingar fram morgonmeldinga"
         type: choice
         options: [auto, briefing, preopen, normal]
         default: auto
@@ -60,69 +49,42 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  watch:
-    runs-on: ubuntu-latest
-    # Kvar oekt varer i inntil fem timar og sjekkar undervegs. GitHub
-    # tillet seks, saa vi har luft. Repoet er offentleg, saa koeyretid
-    # er gratis og ubegrensa.
-    timeout-minutes: 320
+  # Fire økter etter kvarandre. Kvar går 5,5 timar, godt innanfor
+  # seks-timarsgrensa per jobb. Til saman 22 timar.
+  okt1:
+    uses: ./.github/workflows/okt.yml
+    secrets: inherit
+    with:
+      timar: 5.5
+      mode: ${{ github.event.inputs.mode || 'auto' }}
+      dry_run: ${{ github.event.inputs.dry_run == 'true' }}
 
-    steps:
-      - uses: actions/checkout@v4
+  okt2:
+    needs: okt1
+    if: always()
+    uses: ./.github/workflows/okt.yml
+    secrets: inherit
+    with:
+      timar: 5.5
+      mode: auto
+      dry_run: ${{ github.event.inputs.dry_run == 'true' }}
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: pip
+  okt3:
+    needs: okt2
+    if: always()
+    uses: ./.github/workflows/okt.yml
+    secrets: inherit
+    with:
+      timar: 5.5
+      mode: auto
+      dry_run: ${{ github.event.inputs.dry_run == 'true' }}
 
-      - name: Installer avhengigheiter
-        run: pip install -r requirements.txt
-
-      # Hugsar kva som alt er varsla om, så du ikkje får dobbelt opp -
-      # og chart-historikken, så vi ikkje hentar 2000 dagsbarar kvar gong.
-      - name: Hent tidlegare tilstand
-        uses: actions/cache@v4
-        with:
-          path: |
-            state.json
-            cache
-          key: market-watch-state-${{ github.run_id }}
-          restore-keys: |
-            market-watch-state-
-
-      - name: Køyr overvakinga
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          NOTIFIER: ${{ vars.NOTIFIER || 'telegram' }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: |
-          set +e
-          MODE="${{ github.event.inputs.mode }}"
-          ARGS="--mode ${MODE:-auto}"
-          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
-            ARGS="$ARGS --dry-run"
-          fi
-
-          # Manuell start koeyrer éin gong - med mindre long_run er sett,
-          # og då oppfoerer han seg som ei planlagd oekt. Det er slik vi
-          # kan teste loekka utan aa vente paa neste cron.
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] \
-             && [ "${{ github.event.inputs.long_run }}" != "true" ]; then
-            python -m src.main $ARGS
-            exit $?
-          fi
-
-          # Planlagd start: koeyr i fem timar, sjekk kvart 15. minutt.
-          # Dette er heile poenget - vi kan ikkje stole paa at GitHub
-          # fyrer cron naar han skal, men vi kan stole paa at ein jobb
-          # som ALT koeyrer held fram med aa koeyre.
-          SLUTT=$(( $(date +%s) + 5*3600 ))
-          RUNDE=0
-          while [ "$(date +%s)" -lt "$SLUTT" ]; do
-            RUNDE=$((RUNDE+1))
-            echo "--- runde $RUNDE  ($(TZ=Europe/Oslo date '+%H:%M norsk tid')) ---"
-            python -m src.main $ARGS
-            sleep 900
-          done
-          echo "Oekta er ferdig etter $RUNDE rundar."
+  okt4:
+    needs: okt3
+    if: always()
+    uses: ./.github/workflows/okt.yml
+    secrets: inherit
+    with:
+      timar: 5.5
+      mode: auto
+      dry_run: ${{ github.event.inputs.dry_run == 'true' }}
