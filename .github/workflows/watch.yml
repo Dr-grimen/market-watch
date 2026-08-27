@@ -2,27 +2,19 @@ name: market-watch
 
 on:
   schedule:
-    # MERK: GitHub Actions køyrer alltid i UTC. Noreg er UTC+1 (vinter) / UTC+2 (sommar).
-    # Koden les sjølv av lokal tid og avgjer modus, så drifta over sommartid
-    # gjer ingenting - køyringar utanfor aktiv tid avsluttar seg sjølve.
-
-    # MERK OM PÅLITELEGHEIT: GitHub køyrer planlagde jobbar "best effort".
-    # Ber du om for mange, blir dei struper eller droppa heilt - vi bad om
-    # 45 i døgnet og fekk 2. Difor er dette skore ned til det som trengst,
-    # med god luft mellom kvar. Færre og sikrare slår fleire og tapte.
-
-    # Handelsdagen: kvar time. 12-21 UTC = 14-23 norsk tid om sommaren.
-    - cron: "0 12-21 * * 1-5"
-
-    # Morgonmeldinga skal ut 08:40 norsk tid = 06:40 UTC om sommaren,
-    # 07:40 om vinteren. Fire forsøk dekkjer begge, og koden slepp berre
-    # den rette gjennom - state.json hugsar at ho alt er sendt.
+    # GitHub koeyrer planlagde jobbar "best effort", og droppar dei naar
+    # frekvensen er hoeg - vi bad om 45 i doegnet og fekk 2. Difor ber vi
+    # no om berre TRE, og lar kvar av dei koeyre ei lang oekt som sjekkar
+    # sjolv kvart kvarter. Ein cron som fyrer 3 gonger blir honorert;
+    # ein som fyrer 45 blir det ikkje.
     #
-    # Blir alle fire droppa, tek etterslep-logikken det: fyrste køyring
-    # etter det sender morgonmeldinga likevel, heilt fram til klokka 15,
-    # med ærleg tekst om at ho er sein. Det er forskjellen på ei sein
-    # melding og inga melding.
-    - cron: "20,40 6,7 * * 1-5"
+    # 06:00 UTC = 08:00 norsk sommartid. Dekkjer morgonmeldinga 08:40
+    # og formiddagen fram til 13:00.
+    - cron: "0 6 * * 1-5"
+    # 11:00 UTC = 13:00 norsk. Dekkjer amerikansk opning 15:30 og utover.
+    - cron: "0 11 * * 1-5"
+    # 16:00 UTC = 18:00 norsk. Dekkjer resten av handelsdagen til stenging.
+    - cron: "0 16 * * 1-5"
 
   # Køyr manuelt frå Actions-fana for å teste.
   workflow_dispatch:
@@ -44,7 +36,10 @@ concurrency:
 jobs:
   watch:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    # Kvar oekt varer i inntil fem timar og sjekkar undervegs. GitHub
+    # tillet seks, saa vi har luft. Repoet er offentleg, saa koeyretid
+    # er gratis og ubegrensa.
+    timeout-minutes: 320
 
     steps:
       - uses: actions/checkout@v4
@@ -75,14 +70,30 @@ jobs:
           NOTIFIER: ${{ vars.NOTIFIER || 'telegram' }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
-          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
-          TWILIO_FROM_NUMBER: ${{ secrets.TWILIO_FROM_NUMBER }}
-          ALERT_PHONE_NUMBER: ${{ secrets.ALERT_PHONE_NUMBER }}
         run: |
+          set +e
           MODE="${{ github.event.inputs.mode }}"
           ARGS="--mode ${MODE:-auto}"
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
             ARGS="$ARGS --dry-run"
           fi
-          python -m src.main $ARGS
+
+          # Manuell start: koeyr éin gong og ferdig.
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            python -m src.main $ARGS
+            exit $?
+          fi
+
+          # Planlagd start: koeyr i fem timar, sjekk kvart 15. minutt.
+          # Dette er heile poenget - vi kan ikkje stole paa at GitHub
+          # fyrer cron naar han skal, men vi kan stole paa at ein jobb
+          # som ALT koeyrer held fram med aa koeyre.
+          SLUTT=$(( $(date +%s) + 5*3600 ))
+          RUNDE=0
+          while [ "$(date +%s)" -lt "$SLUTT" ]; do
+            RUNDE=$((RUNDE+1))
+            echo "--- runde $RUNDE  ($(TZ=Europe/Oslo date '+%H:%M norsk tid')) ---"
+            python -m src.main $ARGS
+            sleep 900
+          done
+          echo "Oekta er ferdig etter $RUNDE rundar."
