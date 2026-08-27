@@ -376,24 +376,17 @@ def _maybe_lean_alert(state, config, local_time, verdict, price_summary,
     if state.in_lean_cooldown(direction, config.get("lean_cooldown_minutes", 240)):
         return
 
-    basis = ""
-    if base_rate:
-        vs = base_rate * 100 if direction == "opp" else (1 - base_rate) * 100
-        basis = ("\nTil samanlikning: %.0f %% av alle dagar går %s uansett. "
-                 "Hellinga er %+.0f prosentpoeng." % (vs, direction, conf * 100 - vs))
+    grunn = (verdict.get("message") or verdict.get("reasoning", "")).strip()
+    fyrste = grunn.split(". ")[0]
+    if fyrste and not fyrste.endswith("."):
+        fyrste += "."
 
-    message = (
-        "NASDAQ LENER %s - %d %% sikker\n"
-        "IKKJE eit sikkert varsel (terskelen er %d %%).%s\n\n"
-        "%s\n\n"
-        "%s\n"
-        "Skildring, ikkje eit råd.\n%s"
-    ) % (
-        direction.upper(), round(conf * 100),
-        round(config.get("confidence_threshold", 0.75) * 100), basis,
-        verdict.get("message") or verdict.get("reasoning", ""),
-        price_summary, local_time.strftime("%d.%m %H:%M"),
-    )
+    # "Teikn til" og ikkje "sikker på". Same melding med sterkare ord
+    # ville vore ei lita løgn kvar gong, og etter tjue slike ville han
+    # ikkje visst kva orda betydde lenger.
+    message = "Halla Sjef 👋\nEg ser teikn til %s (%d %%).\n\n%s\n\n%s\n%s" % (
+        direction.upper(), round(conf * 100), fyrste,
+        price_summary, local_time.strftime("%d.%m %H:%M"))
 
     if dry_run:
         print("[main] DRY RUN - ville sendt lean-varsel:\n%s" % message)
