@@ -4,13 +4,13 @@
 timezone: Europe/Oslo
 
 # Kor sikker Claude må vere før du får melding (0.0 - 1.0).
-# Sondre sette denne til 0.65. Det er lågare enn dei 0.75 vi starta med,
-# så det blir fleire meldingar - og fleire av dei vil vere feil. Det er
-# eit medvite val han har teke.
+# 0.60. Over dette får han melding med retning; under får han "grå dag".
+# Éin terskel, to utfall, ingen mellomting. Det var bestillinga, og han
+# har rett i at det var eg som gjorde det komplisert.
 #
 # Om talet 0.65 i det heile tatt betyr 65 %, veit vi ikkje enno.
 # Kalibreringa i predictions.json svarer på det om nokre månader.
-confidence_threshold: 0.65
+confidence_threshold: 0.60
 
 # Minste tal minutt mellom to varsel om same aktivum og same retning.
 # Hindrar at same nyheit gir deg fem SMS.
@@ -134,14 +134,11 @@ move_alert_levels: [1.0, 2.0, 3.0]
 # Basisraten er 56 %. Ein lean på 58 % er altså to prosentpoeng betre enn
 # å gjette "opp" kvar einaste dag. Det står i meldinga, kvar gong, fordi
 # ein lean som blir lesen som eit sikkert signal er verre enn ingen lean.
-# PÅ igjen. Grunnen er konkret: 27.08 slo Nvidia tala, futures låg
+# AV. Terskelen ER 60 no, så eit eige sjikt under han er berre støy.
+# (Historikk: 27.08 slo Nvidia tala, futures låg
 # +1,04 %, modellen sa 62 % OPP - og Sondre fekk ingenting, fordi 62 er
-# under 65. Det var nettopp den dagen han ville hatt melding.
-#
-# Løysinga er ikkje å kalle 62 % for "sikker". Det er å ha to nivå med
-# ærlege ord: over 65 % er "eg er sikker", mellom 55 og 65 er "eg ser
-# teikn til". Ulik vissa skal ha ulikt språk.
-lean_alert_enabled: true
+# under 65 - difor vart terskelen sett ned til 60 i staden.)
+lean_alert_enabled: false
 lean_threshold: 0.55           # under dette er det ikkje eingong ei helling
 max_lean_alerts_per_day: 3
 lean_cooldown_minutes: 120
