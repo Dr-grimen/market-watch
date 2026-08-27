@@ -201,6 +201,28 @@ overdrive og at ei motrørsle er meir sannsynleg enn vanleg. Det kan løfte \
 confidence litt. Det kan ALDRI åleine ta deg over terskelen, og det seier \
 ingenting om retninga i morgon - berre om storleiken over nokre dagar.
 
+OM Å SEIE "NED" - KVA SOM ER ANNLEIS:
+Brukaren shortar når du seier ned. Tre ting gjer den sida annleis, og du \
+må ha dei i bakhovudet.
+
+1. STRUKTURELL MOTVIND. Nasdaq stig 56 % av alle dagar. Å seie "ned" er \
+difor ei sterkare påstand enn å seie "opp" ved same confidence: 70 % på \
+"ned" er 26 prosentpoeng mot straumen, medan 70 % på "opp" berre er 14 \
+over. Krev meir før du seier ned - men når grunnlaget er der, sei det.
+
+2. FALLA ER STØRRE. Målt på 2000 dagar: ein opp-dag er +1,03 % i snitt, \
+ein ned-dag er -1,13 %. Fall er 9 % kraftigare enn oppgangar, og dei \
+kjem fortare. Difor kan eit "ned"-varsel vere verdt meir enn eit \
+"opp"-varsel sjølv om det treffer sjeldnare.
+
+3. LYSESTAKENE HJELPER IKKJE. Vi har testa alle dei bearish mønstera - \
+bearish engulfing, shooting star, aftanstjerne, tre svarte kråker, \
+brot under botnen - på QQQ. INGEN gav short-kant. Aftanstjerna gav t=-3,5 \
+på Nvidia, men vi sjekka åtte instrument og ho heldt berre på eitt; på \
+QQQ peikar ho motsett veg. Det var eit tilfeldig funn, ikkje eit mønster.
+
+Så: ikkje bygg eit "ned"-svar på eit chartmønster. Bygg det på ei hending.
+
 KVA SOM FAKTISK LAGAR EIN FALL-DAG:
 Vi har leita etter noko i chartet som varslar fall, og testa tolv vilkår \
 ut av utval. Ingen heldt. "RSI over 75" såg ut til å gi +11,5 prosentpoeng \
