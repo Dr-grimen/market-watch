@@ -55,6 +55,7 @@ jobs:
     uses: ./.github/workflows/okt.yml
     secrets: inherit
     with:
+      nr: 1
       timar: 5.5
       mode: ${{ github.event.inputs.mode || 'auto' }}
       dry_run: ${{ github.event.inputs.dry_run == 'true' }}
@@ -65,6 +66,7 @@ jobs:
     uses: ./.github/workflows/okt.yml
     secrets: inherit
     with:
+      nr: 2
       timar: 5.5
       mode: auto
       dry_run: ${{ github.event.inputs.dry_run == 'true' }}
@@ -75,6 +77,7 @@ jobs:
     uses: ./.github/workflows/okt.yml
     secrets: inherit
     with:
+      nr: 3
       timar: 5.5
       mode: auto
       dry_run: ${{ github.event.inputs.dry_run == 'true' }}
@@ -85,6 +88,7 @@ jobs:
     uses: ./.github/workflows/okt.yml
     secrets: inherit
     with:
+      nr: 4
       timar: 5.5
       mode: auto
       dry_run: ${{ github.event.inputs.dry_run == 'true' }}
