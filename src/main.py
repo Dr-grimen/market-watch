@@ -396,31 +396,81 @@ def _maybe_lean_alert(state, config, local_time, verdict, price_summary,
         print("[main] lean-varsel sendt (%s, %.0f %%)" % (direction, conf * 100))
 
 
+def _mekanisk_morgonmelding(local_time, price_summary, pending, intradag_summary):
+    """Morgonmelding utan Claude.
+
+    Ho kan ikkje seie kva som kjem til å skje - det krev at nokon les
+    nyheitene. Men ho kan seie kva som ER: kva tal som står på kalenderen
+    i dag, kvar Nasdaq står, og korleis dagen har gått hittil. Alt det er
+    fakta, og fakta treng ingen modell.
+
+    Det viktigaste ho gjer er å ikkje late som. Står det "grå dag" utan
+    at nokon har vurdert noko, må det stå kvifor.
+    """
+    linjer = ["Halla Sjef 👋", "Grå dag i dag!", ""]
+
+    if pending:
+        fyrst = pending[0]
+        linjer.append("(%s kl. %s - kan bli noko seinare i dag.)"
+                      % (fyrst["name"], fyrst["time_local"]))
+        linjer.append("")
+
+    if price_summary:
+        linjer.append(price_summary)
+    if intradag_summary:
+        # Berre fyrste linja - resten er for detaljert til ei kort melding.
+        linjer.append(intradag_summary.split("\n")[1].strip()
+                      if "\n" in intradag_summary else "")
+
+    linjer += ["",
+               "MERK: ingen vurdering i dag - Anthropic-kontoen er tom.",
+               "Fyll på, så kjem \"sikker på opp/ned\" tilbake av seg sjølv.",
+               local_time.strftime("%d.%m %H:%M")]
+    return "\n".join(l for l in linjer if l is not None)
+
+
 def _send_briefing(state, config, local_time, candidates, price_summary,
                    world_summary, technical_summary, calendar_summary,
                    chart_summary, ensemble_summary, intradag_summary,
                    quotes_by_asset, pending, api_key, dry_run):
     """Sender morgonmeldinga. Feilar ho, blir det stille - ikkje eit krasj."""
     today = local_time.strftime("%Y-%m-%d")
-    if not api_key:
-        print("[main] morgonmelding: manglar API-nøkkel - hoppar over")
-        return
 
-    verdict = analyze.evaluate(
-        candidates, price_summary,
-        context_note=("Oslo Børs opnar om 20 minutt. Den amerikanske børsen "
-                      "opnar 15:30 norsk tid. Oppsummer kva som ligg føre no."),
-        api_key=api_key,
+    # Utan Claude blir det ei MEKANISK morgonmelding i staden for ingen.
+    # Tom konto, død nøkkel eller nedetid hjå Anthropic skal ikkje gjere
+    # at Sondre står heilt utan beskjed om morgonen - han skal framleis
+    # få vite kva som er planlagt i dag og kvar marknaden står. Han får
+    # berre ikkje ei vurdering, og det står det tydeleg i meldinga.
+    verdict = None
+    if api_key:
+        try:
+            verdict = analyze.evaluate(
+                candidates, price_summary,
+                context_note=("Oslo Børs opnar om 20 minutt. Den amerikanske "
+                              "børsen opnar 15:30 norsk tid. Oppsummer kva "
+                              "som ligg føre no."),
+                api_key=api_key,
         world_summary=world_summary,
         technical_summary=technical_summary,
         calendar_summary=calendar_summary,
         ensemble_summary=ensemble_summary,
-        intradag_summary=intradag_summary,
-        system_prompt=analyze.BRIEFING_PROMPT,
-    )
+                intradag_summary=intradag_summary,
+                system_prompt=analyze.BRIEFING_PROMPT,
+            )
+        except analyze.FatalKontoFeil as exc:
+            print("[main] morgonmelding utan vurdering: %s" % exc)
+
     if verdict is None:
-        print("[main] morgonmelding: vurderinga feila - inga melding")
+        message = _mekanisk_morgonmelding(local_time, price_summary, pending,
+                                          intradag_summary)
+        if dry_run:
+            print("[main] DRY RUN - ville sendt MEKANISK morgonmelding:\n%s" % message)
+            return
+        if notify.send(message):
+            state.record_briefing(today)
+            print("[main] mekanisk morgonmelding sendt (ingen vurdering)")
         return
+
     if verdict.get("suspicious_content"):
         print("[main] morgonmelding: mistenkeleg innhald i materialet - inga melding")
         return
