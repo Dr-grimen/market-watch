@@ -1,8 +1,11 @@
 """Dagleg OHLC-historikk, gratis og utan API-nøkkel.
 
-Kjelda er api.nasdaq.com sitt opne historikk-endepunkt. Det gir ~1900
-handledagar med open, high, low, close og volum - nok til å rekne
-statistikk på lysestake-mønster i staden for å berre påstå at dei verkar.
+Kjelda er api.nasdaq.com sitt opne historikk-endepunkt. Det gir ~2500
+handledagar - endepunktet kappar ved 10 aar uansett kva ein ber om, og
+alle dei lange gratiskjeldene er stengde (FRED svarar tomt, Yahoo krev
+innlogging, Stooq har JS-vegg). Ti år med open, high, low, close og
+volum - nok til å rekne statistikk på lysestake-mønster i staden for å
+berre påstå at dei verkar.
 
 Kvifor ETF-ar og ikkje indeksar: endepunktet har ikkje indeksar, og ETF-ar
 er dessutan betre til dette. Ein indeks har ikkje volum. QQQ, USO og BNO
@@ -107,7 +110,7 @@ def _stale_cache(symbol):
     return _read_cache(symbol, max_age=30 * 24 * 3600)
 
 
-def fetch_daily(symbol, assetclass="etf", years=8, timeout=30):
+def fetch_daily(symbol, assetclass="etf", years=10, timeout=30):
     """Returnerer liste med dagsbarar, eldste fyrst. Tom liste ved feil."""
     cached = _read_cache(symbol, CACHE_TTL_SECONDS)
     if cached:
