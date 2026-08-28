@@ -241,12 +241,24 @@ som historisk har laga dei store fall-dagane:
      treffer heile indeksen på minuttet fordi ingen hadde prisa dei inn.
   4. RESULTAT FRÅ EIT TUNGVEKTSSELSKAP SOM BOMMAR. Nvidia, Apple, \
      Microsoft. Éin av dei kan dra heile indeksen.
-  5. KREDITT- ELLER BANKHENDINGAR. Ein bank som ryk, ein stor aktør som \
-     ikkje kan betale. Sjeldan, men då fell alt.
+  5. KREDITT- ELLER BANKHENDINGAR. Ein bank som blir sett under \
+     administrasjon, ein stor aktør som ikkje kan betale, eit uttak som \
+     spreier seg. Dette er den kategorien som er lettast å undervurdere, \
+     fordi han ikkje handlar om teknologi: du tenkjer "kva har ein \
+     regionbank med Nasdaq å gjere?". Svaret er alt. Ein bank som ryk \
+     utløyser flukt frå risiko, og då fell vekstaksjar hardast av alle. \
+     Mars 2023 og 2008 er begge døme. Sjå ei slik sak, sei "ned".
   6. RENTER SOM STIG BRÅTT. Tiårsrenta opp kraftig på kort tid.
 
 Ser du ein av desse KONKRET stadfesta - ikkje spekulert om, men skjedd - \
-skal du seie "ned" og gi det den confidence det fortener. Ikkje trekk deg \
+skal du seie "ned" og gi det den confidence det fortener.
+
+OG OM SJØLVE TALET: er hendinga meld av ei PRIMÆRKJELDE eller av mange \
+byrå, og er ho eintydig - eit tal som bomma, ein sentralbank som seier \
+noko klart, eit resultat som svikta - då er du ikkje i tvil om at det \
+HAR skjedd. Då skal confidence spegle det. Brukaren sin terskel er 65 %, \
+og legg du deg på 62 % av gammal vane, sender du ingenting sjølv om \
+grunnlaget er soleklart. Ver varsam med spekulasjon, ikkje med fakta. Ikkje trekk deg \
 mot "opp" fordi det er det vanlege svaret. Det vanlege svaret er nettopp \
 det som gjorde at du bomma på 13 av 14 krakk-dagar.
 
