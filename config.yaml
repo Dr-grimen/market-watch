@@ -30,10 +30,16 @@ max_alerts_per_day: 6
 # ingenting. Difor kan vi sjekke ofte, og berre BRUKE PENGAR når noko
 # faktisk har endra seg sidan sist.
 #
-# Tre ting utløyser ei vurdering:
-eval_move_trigger_pct: 0.25    # prisen har flytta så mykje sidan sist
-eval_score_trigger: 25         # eller det kom ei sak tung nok i seg sjølv
-eval_max_gap_minutes: 30       # eller det er så lenge sidan at vi sjekkar uansett
+# Tre ting utløyser ei vurdering. Tala er sette for å halde kostnaden
+# på rundt 5 kr i månaden - altså ~3 Claude-kall om dagen i staden for 60.
+#
+# Sjekkinga skjer framleis kvart 3. minutt, og alt det gratis blir gjort
+# kvar gong: prisar, kalender, intradag, 103 kjelder, chart. Det er berre
+# SJØLVE VURDERINGA som er sjeldan. Difor får du framleis faktameldingar
+# med ein gong - "Core PCE kom inn på 0,1 %" krev ingen modell.
+eval_move_trigger_pct: 0.8     # prisen må ha flytta ein heil dagsrørsle
+eval_score_trigger: 40         # og saka må vere tung: fleire kjelder + hovudord
+eval_max_gap_minutes: 300      # elles held det med éin gong kvar 5. time
 
 # Maks tal nyheitssaker som blir sendt til Claude i éin køyring.
 # Kvar sak kostar pengar, så dette er kostnadstaket ditt.

@@ -670,7 +670,9 @@ def run(mode="auto", dry_run=False):
         toppscore,
         config.get("eval_score_trigger", 25),
     )
-    if not treng:
+    # Morgonmeldinga skal alltid gjennom - ho er den faste kanalen, og
+    # ho kostar eitt kall om dagen. Porten gjeld berre varsla.
+    if not treng and not briefing_due(local_time, config, state):
         print("[main] ingenting nytt sidan sist vurdering - hoppar over (gratis)")
         state.save()
         return 0
