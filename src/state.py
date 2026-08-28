@@ -26,6 +26,13 @@ class State(object):
         # som ein roleg marknad - begge deler er stille.
         self.fail_streak = data.get("fail_streak", 0)
         self.failure_notified = data.get("failure_notified", False)
+        # Kva feil vi sist varsla om, og når. Trengst fordi
+        # failure_notified-flagget ligg i ein cache som ikkje alltid
+        # overlever mellom oekter - og da trur kvar ny oekt at han
+        # oppdagar problemet for foerste gong. 28.08 gav det Sondre
+        # elleve identiske meldingar om ein tom API-konto paa ein dag.
+        self.last_failure_text = data.get("last_failure_text", "")
+        self.last_failure_time = data.get("last_failure_time", 0)
         self.last_heartbeat = data.get("last_heartbeat", 0)
         self.week_runs = data.get("week_runs", 0)
         self.week_items = data.get("week_items", 0)
@@ -71,6 +78,8 @@ class State(object):
             "alert_log": self.alert_log,
             "fail_streak": self.fail_streak,
             "failure_notified": self.failure_notified,
+            "last_failure_text": self.last_failure_text,
+            "last_failure_time": self.last_failure_time,
             "last_heartbeat": self.last_heartbeat,
             "week_runs": self.week_runs,
             "week_items": self.week_items,
@@ -128,17 +137,36 @@ class State(object):
         self.failure_notified = False
         return recovered
 
-    def record_failure(self, threshold):
+    def record_failure(self, threshold, reason="", repeat_hours=12):
         """Returnerer True når vi bør varsle om at verktøyet er nede.
 
-        Berre éin gong per samanhengande feilperiode - eit knekt verktøy
-        skal ikkje spamme deg kvart 20. minutt.
+        To sperrer, ikkje éi. Den fyrste er flagget: berre éin gong per
+        samanhengande feilperiode. Den andre er tida: same feiltekst
+        skal ikkje sendast på nytt innan 12 timar uansett kva flagget
+        seier.
+
+        Den andre finst fordi den fyrste ikkje er nok. Flagget ligg i ein
+        cache som ikkje alltid overlever mellom økter, og da trur kvar ny
+        økt at han oppdagar problemet for fyrste gong. Ein tom API-konto
+        gav elleve identiske meldingar på eitt døgn - eit varsel som
+        gjentek seg blir like verdilaust som eitt som aldri kjem.
         """
         self.fail_streak += 1
-        if self.fail_streak >= threshold and not self.failure_notified:
-            self.failure_notified = True
-            return True
-        return False
+        if self.fail_streak < threshold:
+            return False
+
+        if reason and reason == self.last_failure_text:
+            gaatt = time.time() - self.last_failure_time
+            if gaatt < repeat_hours * 3600:
+                return False
+
+        if self.failure_notified and reason == self.last_failure_text:
+            return False
+
+        self.failure_notified = True
+        self.last_failure_text = reason
+        self.last_failure_time = time.time()
+        return True
 
     def briefing_due(self, today):
         return self.last_briefing_date != today

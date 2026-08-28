@@ -149,7 +149,7 @@ def _handle_failure(state, config, reason, dry_run):
     """
     threshold = config.get("failure_alert_after", 5)
     print("[main] FEIL: %s (strekk: %d)" % (reason, state.fail_streak + 1))
-    if state.record_failure(threshold) and not dry_run:
+    if state.record_failure(threshold, reason) and not dry_run:
         notify.send(
             "market-watch klarar ikkje å køyre: %s.\n"
             "Dette har skjedd %d gonger på rad. Du får ingen marknadsvarsel "
