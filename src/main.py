@@ -432,7 +432,7 @@ def _mekanisk_morgonmelding(local_time, price_summary, pending, intradag_summary
 def _send_briefing(state, config, local_time, candidates, price_summary,
                    world_summary, technical_summary, calendar_summary,
                    chart_summary, ensemble_summary, intradag_summary,
-                   quotes_by_asset, pending, api_key, dry_run):
+                   qqq_pris, pending, api_key, dry_run):
     """Sender morgonmeldinga. Feilar ho, blir det stille - ikkje eit krasj."""
     today = local_time.strftime("%Y-%m-%d")
 
@@ -475,12 +475,12 @@ def _send_briefing(state, config, local_time, candidates, price_summary,
         print("[main] morgonmelding: mistenkeleg innhald i materialet - inga melding")
         return
 
-    nasdaq_no = None
-    for q in (quotes_by_asset.get("nasdaq") or []):
-        nasdaq_no = q.get("price")
-        break
+    # Referanseprisen MÅ vere QQQ. Kalibreringa dømmer mot QQQ sine
+    # dagsbarar, og lagra vi indeksen (~23 000) i staden ville kvar
+    # samanlikning gitt -97 % - som er nøyaktig det som stod i loggen
+    # før dette blei retta.
     calibration.record(today, verdict.get("direction"),
-                       verdict.get("confidence", 0.0), nasdaq_no, "briefing")
+                       verdict.get("confidence", 0.0), qqq_pris, "briefing")
 
     message = build_briefing(verdict, price_summary, chart_summary, local_time,
                              config.get("confidence_threshold", 0.75), pending)
@@ -579,12 +579,14 @@ def run(mode="auto", dry_run=False):
     # som fell tilbake frå toppen. Utan dette les vi eit referat av
     # marknaden i staden for marknaden sjølv.
     intradag_summary = ""
+    qqq_pris = None
     try:
         qqq_bars = history.fetch_daily("QQQ")
         dagsanalyse = intraday.analyse(
             intraday.fetch("QQQ"),
             forrige_slutt=qqq_bars[-1]["close"] if qqq_bars else None)
         if dagsanalyse:
+            qqq_pris = dagsanalyse["no"]
             intradag_summary = intraday.format_report(
                 dagsanalyse, "Nasdaq (QQQ)", intraday.snitt_dagsspenn(qqq_bars))
             print("[main] intradag: %+.2f %% frå opning, %.0f %% opp i dagens spenn"
@@ -592,6 +594,8 @@ def run(mode="auto", dry_run=False):
     except Exception as exc:
         print("[main] intradag svarte ikkje (%s) - held fram utan"
               % type(exc).__name__)
+    if qqq_pris is None and qqq_bars:
+        qqq_pris = qqq_bars[-1]["close"]      # reserve: siste dagsslutt
 
     # Kalenderen (gratis). Det einaste i heile verktøyet som er fakta
     # og ikkje tolking: kva som er planlagt, og om det har kome enno.
@@ -677,7 +681,7 @@ def run(mode="auto", dry_run=False):
         _send_briefing(state, config, local_time, candidates, price_summary,
                        world_summary, technical_summary, calendar_summary,
                        chart_summary, ensemble_summary, intradag_summary,
-                       quotes_by_asset, pending, api_key, dry_run)
+                       qqq_pris, pending, api_key, dry_run)
 
     if not candidates and not big_move:
         print("[main] ingenting å vurdere - stille")
