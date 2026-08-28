@@ -4,18 +4,17 @@
 timezone: Europe/Oslo
 
 # Kor sikker Claude må vere før du får melding (0.0 - 1.0).
-# 0.65. Over dette får han melding med retning; under får han "grå dag".
+# 0.66. Over dette får han melding med retning; under får han "grå dag".
 # Éin terskel, to utfall, ingen mellomting.
 #
-# Sett opp frå 0.60 etter ein test som viste at maskineriet toler det:
-# eit klart negativt nyheitsbilete (CPI 4,1 % mot venta 3,2 %) gav NED
-# med 82 %, og eit klart positivt gav OPP med 72 %. Begge ville framleis
-# komme gjennom. Det er dei lunkne 60-64 % som blir borte - og dei var
-# det minst å stole på.
+# Sondre sette han til 66 etter at 62 % ikkje kjendest sikkert nok.
+# Testa scenario ligg trygt over: eit CPI-tal som bommar gir 72 %, ein
+# Fed som overraskar 68 %, ein bank som ryk 68 %. Det som fell bort er
+# 62-65 - dei lunkne, som han sjølv sa ikkje var sikre nok.
 #
-# Om talet 0.65 i det heile tatt betyr 65 %, veit vi ikkje enno.
+# Om talet 0.66 i det heile tatt betyr 66 %, veit vi ikkje enno.
 # Kalibreringa i predictions.json svarer på det om nokre månader.
-confidence_threshold: 0.65
+confidence_threshold: 0.66
 
 # Minste tal minutt mellom to varsel om same aktivum og same retning.
 # Hindrar at same nyheit gir deg fem SMS.
@@ -161,10 +160,9 @@ move_alert_levels: [1.0, 2.0, 3.0]
 # Basisraten er 56 %. Ein lean på 58 % er altså to prosentpoeng betre enn
 # å gjette "opp" kvar einaste dag. Det står i meldinga, kvar gong, fordi
 # ein lean som blir lesen som eit sikkert signal er verre enn ingen lean.
-# AV. Terskelen ER 60 no, så eit eige sjikt under han er berre støy.
-# (Historikk: 27.08 slo Nvidia tala, futures låg
-# +1,04 %, modellen sa 62 % OPP - og Sondre fekk ingenting, fordi 62 er
-# under 65 - difor vart terskelen sett ned til 60 i staden.)
+# AV, og det skal han vere. Sondre var tydeleg: ingenting under 66 %.
+# Eit sjikt som seier "eg ser teikn til" ved 58 % ville vore nettopp
+# den mellomtinga han ikkje vil ha.
 lean_alert_enabled: false
 lean_threshold: 0.55           # under dette er det ikkje eingong ei helling
 max_lean_alerts_per_day: 3
