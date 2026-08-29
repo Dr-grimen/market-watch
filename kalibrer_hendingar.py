@@ -39,7 +39,7 @@ from datetime import date, timedelta
 
 from src.config import load_config, env
 from src.sources import history, calendar as cal
-from src import analyze, technicals as T
+from src import analyze, ensemble, technicals as T
 
 VIKTIGE = ("core cpi", "cpi", "core pce", "pce", "nonfarm payrolls",
            "unemployment rate", "ppi", "core ppi")
@@ -109,10 +109,47 @@ def main():
                  and indeks[x["dato"]] + 1 < len(closes)]
     print("Testar %d hendingsdagar.\n" % len(hendingar))
 
+    # Kryss-instrumenta ein gong, ikkje per dag.
+    kryss_full = dict((k, ensemble._aligned(bars, v))
+                      for k, v in ensemble.load_cross().items())
+
+    def verdsbilete(i):
+        """Rekonstruer korleis verda saag ut den dagen.
+
+        Fyrste versjonen av denne testen gav modellen berre kalendertalet.
+        Det var urettferdig: i produksjon ser han halvleiarar, renter,
+        volatilitet og kvar i dagens spenn kursen ligg. Ein test som held
+        tilbake halve materialet maaler noko anna enn det systemet gjer.
+        """
+        linjer = []
+        for namn, nykel in (("Halvleiarar (SMH)", "smh"),
+                            ("Lange renter (TLT)", "tlt"),
+                            ("Volatilitet (VIXY)", "vixy")):
+            serie = kryss_full.get(nykel) or []
+            if i < len(serie) and serie[i] and serie[i - 1]:
+                endring = (serie[i]["close"] / serie[i - 1]["close"] - 1) * 100
+                linjer.append("  %s: %+.2f %%" % (namn, endring))
+        eigen = (closes[i] / closes[i - 1] - 1) * 100
+        linjer.append("  Nasdaq (QQQ) sjølv: %+.2f %%" % eigen)
+        return "\n".join(linjer)
+
     def ein(x):
         i = indeks[x["dato"]]
         try:
-            rapport = T.analyse(bars[:i + 1], "QQQ (Nasdaq-100)")
+            kutt = bars[:i + 1]
+            kryss = dict((k, v[:i + 1]) for k, v in kryss_full.items())
+            rapport = T.analyse(kutt, "QQQ (Nasdaq-100)")
+
+            res = ensemble.evaluate(kutt, kryss)
+            sig = ensemble.format_report(res, kutt) if res else ""
+
+            gap = T.gap_statistics(kutt)
+            gaptekst = T.gap_context(gap, (closes[i] / closes[i - 1] - 1) * 100,
+                                     "Nasdaq") if gap else ""
+            teknisk = T.format_report(rapport) if rapport else ""
+            if gaptekst:
+                teknisk += "\n\nRØRSLE SISTE DAG:\n" + gaptekst
+
             verdict = analyze.evaluate(
                 [{"source": "BLS", "tier": "primary", "age_hours": 0.3,
                   "source_count": 6,
@@ -121,7 +158,9 @@ def main():
                 "NASDAQ 100 (siste slutt %.2f)" % closes[i],
                 api_key=nøkkel,
                 calendar_summary=cal.format_calendar(cal.fetch_today(x["dato"])),
-                technical_summary=T.format_report(rapport) if rapport else "")
+                technical_summary=teknisk,
+                ensemble_summary=sig,
+                world_summary=verdsbilete(i))
             if not verdict:
                 return None
             return (verdict["direction"], verdict["confidence"],
