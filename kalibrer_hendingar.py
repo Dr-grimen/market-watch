@@ -8,14 +8,19 @@ konsensus. Vi finn dagar der eit stort tal bomma, gir modellen nøyaktig det
 materialet han ville hatt den dagen - kalenderen slik han saag ut, chartet
 kutta der - og samanliknar det han sa med det som faktisk hende.
 
-Resultatet fyrste gong dette blei koeyrt (28.08.2026, 30 dagar):
+Resultat 28.08.2026, 64 hendingsdagar over to aar:
 
-    han sa 50-60 %   ->  hadde rett 60 %    (godt kalibrert)
-    han sa 60-66 %   ->  hadde rett 40 %
-    han sa 66-75 %   ->  hadde rett 30 %    (paastod 70 %)
+    han sa 50-60 %   ->  hadde rett 50 %   (paastod 57 %)
+    han sa 60-66 %   ->  hadde rett 62 %   (paastod 62 %)  godt kalibrert
+    han sa 66-75 %   ->  hadde rett 44 %   (paastod 70 %)  25 poeng for hoegt
 
-Merk retninga: dei LAAGE tala var noeyaktige, dei HOEGE var verst. Det er
-ikkje berre daarleg kalibrering, det er omvendt kalibrering.
+    Over terskelen paa 66 %: 18 meldingar, 8 rett = 44 %. z=-0,5.
+
+Konklusjonen er ikkje at han er litt overkonfident. Han er at det ikkje
+finst maalt evidens for at retningsvurderinga slaar eit myntkast - paa
+noko konfidensnivaa. Og mest talande: bootta 60-66 % var noeyaktig
+kalibrert, medan bootta over 66 % var verst. Terskelen vaar plukkar altsaa
+ut nettopp det omraadet der modellen er minst paalitelege.
 
 Ei viktig avgrensing: testen gir modellen berre kalendertalet, ikkje dei
 tolv nyheitssakene han faar i produksjon. Han kan gjere det betre med meir
@@ -48,16 +53,16 @@ def _tal(tekst):
 
 def finn_bommar(frå_år=2024, frå_mnd=9):
     """Dagar der eit tungt tal bomma paa konsensus."""
+    # Alle kvardagar, ikkje eit utval. Fyrste versjonen skanna sju dagar
+    # per maanad og fann 30 hendingar - for lite til aa seie noko. Med
+    # alle kvardagar blir utvalet stort nok til at tala betyr noko.
     datoar = []
     d = date(frå_år, frå_mnd, 1)
     i_dag = date.today()
-    while d < i_dag - timedelta(days=7):
-        for dag in (3, 5, 10, 12, 13, 14, 15):
-            try:
-                datoar.append(d.replace(day=dag).isoformat())
-            except ValueError:
-                pass
-        d = (d.replace(day=28) + timedelta(days=7)).replace(day=1)
+    while d < i_dag - timedelta(days=3):
+        if d.weekday() < 5:
+            datoar.append(d.isoformat())
+        d += timedelta(days=1)
 
     def sjekk(dato):
         ut = []
@@ -71,7 +76,7 @@ def finn_bommar(frå_år=2024, frå_mnd=9):
                        "venta": e["consensus"], "avvik": a - k})
         return ut
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as pool:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=16) as pool:
         alle = [x for grp in pool.map(sjekk, datoar) for x in grp]
 
     # Éin per dato - den med størst avvik.
