@@ -7,3 +7,4 @@ venv/
 logs/
 cache/
 predictions.json
+simulering.json
