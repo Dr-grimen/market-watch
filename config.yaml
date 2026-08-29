@@ -4,17 +4,27 @@
 timezone: Europe/Oslo
 
 # Kor sikker Claude må vere før du får melding (0.0 - 1.0).
-# 0.66. Over dette får han melding med retning; under får han "grå dag".
-# Éin terskel, to utfall, ingen mellomting.
+# 0.58, og det talet ser lågt ut med vilje. Historia bak er verdt å hugse.
 #
-# Sondre sette han til 66 etter at 62 % ikkje kjendest sikkert nok.
-# Testa scenario ligg trygt over: eit CPI-tal som bommar gir 72 %, ein
-# Fed som overraskar 68 %, ein bank som ryk 68 %. Det som fell bort er
-# 62-65 - dei lunkne, som han sjølv sa ikkje var sikre nok.
+# Vi hadde 0.66 fyrst. Så testa vi modellen på 64 historiske dagar der eit
+# stort tal bomma på konsensus, og fann dette:
 #
-# Om talet 0.66 i det heile tatt betyr 66 %, veit vi ikkje enno.
-# Kalibreringa i predictions.json svarer på det om nokre månader.
-confidence_threshold: 0.66
+#   sa 50-60 %  ->  traff 50 %
+#   sa 60-66 %  ->  traff 62 %   (godt kalibrert)
+#   sa 66-75 %  ->  traff 44 %   (påstod 70 %)
+#
+# Over 66 % var han DÅRLEGARE enn under. Grunnen var ein instruks vi
+# sjølve hadde skrive: "eit tal som avvik frå konsensus gir høg
+# confidence". Den er målt feil - at eit tal bomma er eit faktum, men
+# korleis marknaden reagerer er det ikkje.
+#
+# Då den instruksen blei fjerna og målinga lagt inn i staden, slutta han
+# å gå over 66 % i det heile - og treffsikkerheita i 50-60-bøtta gjekk
+# frå 50 % til 71 %. Sjølvtilliten hadde øydelagt signalet.
+#
+# Difor 0.58: det er der han faktisk treffer. Eit ærleg 58 slår eit
+# oppblåse 70. (n=14, z=+1,6 - lovande, ikkje bevist.)
+confidence_threshold: 0.58
 
 # Minste tal minutt mellom to varsel om same aktivum og same retning.
 # Hindrar at same nyheit gir deg fem SMS.

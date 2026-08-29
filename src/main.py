@@ -119,8 +119,14 @@ def build_briefing(verdict, price_summary, chart_summary, local_time, threshold,
         return "Halla Sjef 👋\nGrå dag i dag!%s\n\n%s" % (
             varsel, local_time.strftime("%d.%m %H:%M"))
 
-    return "Halla Sjef 👋\nEg er sikker på %s i dag (%d %%).\n\n%s\n\n%s\n%s" % (
-        direction.upper(), round(conf * 100), fyrste,
+    # Ordet må passe talet. "Sikker" på 58 % er ei lita løgn, og etter
+    # tjue slike veit han ikkje kva orda tyder lenger. Målinga seier at
+    # 58-65 er der han faktisk treffer, så det språket skal vere roleg;
+    # over 66 har han historisk vore overkonfident, så det skal vere
+    # sjeldan og då fortener det sterkare ord.
+    ord = "Eg er sikker på" if conf >= 0.66 else "Eg trur det går"
+    return "Halla Sjef 👋\n%s %s i dag (%d %%).\n\n%s\n\n%s\n%s" % (
+        ord, direction.upper(), round(conf * 100), fyrste,
         price_summary or "", local_time.strftime("%d.%m %H:%M"))
 
 
@@ -132,9 +138,12 @@ def build_message(verdict, price_summary, local_time):
     if fyrste and not fyrste.endswith("."):
         fyrste += "."
 
-    return "Halla Sjef 👋\nEg er sikker på %s (%d %%).\n\n%s\n\n%s\n%s" % (
+    conf = float(verdict.get("confidence", 0))
+    ord = "Eg er sikker på" if conf >= 0.66 else "Eg trur det går"
+    return "Halla Sjef 👋\n%s %s (%d %%).\n\n%s\n\n%s\n%s" % (
+        ord,
         {"opp": "OPP", "ned": "NED"}.get(direction, "?"),
-        round(float(verdict.get("confidence", 0)) * 100),
+        round(conf * 100),
         fyrste,
         price_summary,
         local_time.strftime("%d.%m %H:%M"),
