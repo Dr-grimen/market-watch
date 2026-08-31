@@ -35,6 +35,9 @@ BUCKETS = [(0.0, 0.4), (0.4, 0.6), (0.6, 0.75), (0.75, 0.9), (0.9, 1.01)]
 
 MIN_FOR_VERDICT = 30
 
+# Loggen blir klipt til dette. Sjå _tapt().
+MAXROWS = 500
+
 
 def _load():
     if not LOG_PATH.exists():
@@ -62,13 +65,13 @@ def record(local_date, direction, confidence, reference_price, kind="briefing"):
     heile loggen verdilaus.
     """
     if reference_price is None:
-        return
+        return False
     rows = _load()
     # Éi vurdering per dag per type. Køyrer verktøyet fleire gonger,
     # skal ikkje same dagen telje fem gonger og forureine statistikken.
     for row in rows:
         if row["date"] == local_date and row["kind"] == kind:
-            return
+            return False
     rows.append({
         "date": local_date,
         "kind": kind,
@@ -79,7 +82,8 @@ def record(local_date, direction, confidence, reference_price, kind="briefing"):
         "outcome": None,       # blir fylt inn seinare
         "actual_pct": None,
     })
-    _save(rows[-500:])
+    _save(rows[-MAXROWS:])
+    return True
 
 
 def settle(bars):
@@ -125,15 +129,48 @@ def settle(bars):
     return settled
 
 
-def report():
+def _tapt(ever, n_rows):
+    """Skil "tom fordi ny" frå "tom fordi noko forsvann".
+
+    Dei to ser heilt like ut utanfrå, og det var nettopp difor ein
+    mista logg kunne gøyme seg i månadsvis bak setninga "for få
+    vurderingar enno". Teljaren ligg i state.json, loggen i
+    predictions.json. Forsvinn den eine, avslører den andre det.
+
+    MAXROWS er med fordi loggen med vilje blir klipt til dei siste 500.
+    Utan den grensa ville verktøyet meldt tap kvar gong det passerte.
+    """
+    if not ever:
+        return None
+    forventa = min(ever, MAXROWS)
+    if n_rows >= forventa:
+        return None
+    return forventa - n_rows
+
+
+def report(ever=None):
     """Ei linje per bøtte: kva han påstod, mot kva han fekk til."""
-    rows = [r for r in _load()
+    alle = _load()
+    rows = [r for r in alle
             if r.get("outcome") is not None and r.get("direction") in ("opp", "ned")]
+
+    tapt = _tapt(ever, len(alle))
+    if tapt:
+        åtvaring = ("ÅTVARING: %d vurderingar er gjorde, men berre %d ligg i "
+                    "loggen. %d har gått tapt.\n  Fasiten byggjer seg ikkje "
+                    "opp - sjekk at predictions.json overlever mellom øktene."
+                    % (ever, len(alle), tapt))
+    else:
+        åtvaring = ""
+
     if not rows:
-        return ("Kalibrering: ingen vurderingar med retning er dømde enno. "
-                "Talet blir meiningsfullt etter nokre månader.")
+        grunn = ("Kalibrering: ingen vurderingar med retning er dømde enno. "
+                 "Talet blir meiningsfullt etter nokre månader.")
+        return (grunn + "\n  " + åtvaring) if åtvaring else grunn
 
     lines = ["Kalibrering - får han rett når han seier han er sikker?"]
+    if åtvaring:
+        lines.append("  " + åtvaring)
     for low, high in BUCKETS:
         subset = [r for r in rows if low <= r["confidence"] < high]
         if not subset:
@@ -162,10 +199,15 @@ def report():
     return "\n".join(lines)
 
 
-def summary_line():
+def summary_line(ever=None):
     """Kort versjon, til meldingar."""
-    rows = [r for r in _load()
+    alle = _load()
+    rows = [r for r in alle
             if r.get("outcome") is not None and r.get("direction") in ("opp", "ned")]
+    tapt = _tapt(ever, len(alle))
+    if tapt:
+        return ("Treffhistorikk: %d av %d vurderingar er borte frå loggen - "
+                "fasiten tel ikkje." % (tapt, ever))
     if len(rows) < MIN_FOR_VERDICT:
         return "Treffhistorikk: %d vurderingar dømde - for få til å seie noko." % len(rows)
     treff = sum(1 for r in rows if r["outcome"])

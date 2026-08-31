@@ -200,7 +200,7 @@ def _maybe_heartbeat(state, config, local_time, price_summary, dry_run):
         "Siste veka: %d køyringar, %d saker lesne, %d varsel sendt.\n"
         "%s\n\n"
         "%s\n\n"
-        "%s" % (runs, items, alerts, kjelder, calibration.report(), price_summary)
+        "%s" % (runs, items, alerts, kjelder, calibration.report(state.predictions_ever), price_summary)
     )
     if dry_run:
         print("[main] DRY RUN - ville sendt livsteikn:\n%s" % text)
@@ -488,8 +488,11 @@ def _send_briefing(state, config, local_time, candidates, price_summary,
     # dagsbarar, og lagra vi indeksen (~23 000) i staden ville kvar
     # samanlikning gitt -97 % - som er nøyaktig det som stod i loggen
     # før dette blei retta.
-    calibration.record(today, verdict.get("direction"),
-                       verdict.get("confidence", 0.0), qqq_pris, "briefing")
+    if calibration.record(today, verdict.get("direction"),
+                          verdict.get("confidence", 0.0), qqq_pris, "briefing"):
+        # Teljaren lever i state.json, loggen i predictions.json. Held vi
+        # dei to frå kvarandre, kan den eine avsløre at den andre er borte.
+        state.predictions_ever += 1
 
     message = build_briefing(verdict, price_summary, chart_summary, local_time,
                              config.get("confidence_threshold", 0.75), pending)

@@ -55,6 +55,13 @@ class State(object):
         # til å verke, men du overvakar mindre og mindre av verda.
         self.feed_health = data.get("feed_health", {})
 
+        # Kor mange vurderingar vi har GJORT nokon gong. Ligg her og
+        # ikkje i predictions.json med vilje: to filer som blir borte
+        # uavhengig av kvarandre kan kontrollere kvarandre. Er dette
+        # talet mykje hoegare enn talet paa rader i loggen, har loggen
+        # mista noko - og det er ein feil som elles ikkje gir symptom.
+        self.predictions_ever = data.get("predictions_ever", 0)
+
     @classmethod
     def load(cls):
         if STATE_PATH.exists():
@@ -93,6 +100,7 @@ class State(object):
             "lean_log": self.lean_log,
             "last_lean": self.last_lean,
             "feed_health": self.feed_health,
+            "predictions_ever": self.predictions_ever,
         }
         with open(STATE_PATH, "w", encoding="utf-8") as fh:
             json.dump(payload, fh)
