@@ -65,6 +65,7 @@ jobs:
         with:
           path: |
             state.json
+            predictions.json
             cache
           key: mw-state-${{ github.run_id }}-${{ github.run_attempt }}-okt${{ inputs.nr }}
           restore-keys: |
