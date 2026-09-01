@@ -178,7 +178,7 @@ def _maybe_heartbeat(state, config, local_time, price_summary, dry_run):
     køyrer, slik at stille kan tolkast som 'ingenting skjer' og ikkje
     som 'dette har vore dødt i tre veker'.
     """
-    if not config.get("heartbeat_enabled", True):
+    if not config.get("heartbeat_enabled", False):
         return
     if local_time.weekday() != config.get("heartbeat_weekday", 4):
         return
@@ -218,7 +218,7 @@ def _maybe_uncertainty_alert(state, config, local_time, verdict, candidates,
     ho like verdilaus som eit varsel du ikkje kan stole på. Alle fire
     vilkåra må vere oppfylte, og du får maks eitt slikt i døgnet.
     """
-    if not config.get("uncertainty_alert_enabled", True):
+    if not config.get("uncertainty_alert_enabled", False):
         return
     if local_time.hour < 7 or local_time.hour >= 23:
         return
@@ -287,7 +287,9 @@ def _maybe_event_alert(state, config, local_time, pending_before, kalender,
     faktum. Sondre skal ha det med ein gong, og han skal ha det utan
     at nokon har gjetta på kva det tyder.
     """
-    if not config.get("event_alert_enabled", True):
+    # Standard AV. Ein skjult standard paa True tyder at ein slurvefeil
+    # i config slaar meldingstypen paa igjen utan at nokon bestemte det.
+    if not config.get("event_alert_enabled", False):
         return
     today = local_time.strftime("%Y-%m-%d")
 
@@ -322,7 +324,7 @@ def _maybe_move_alert(state, config, local_time, all_quotes, dry_run):
     seg meir enn ein vanleg dag, og kva veg. Éi melding per nivå, så
     ein dag som fell jamt ikkje gir tjue meldingar.
     """
-    if not config.get("move_alert_enabled", True):
+    if not config.get("move_alert_enabled", False):
         return
     if local_time.hour < 7 or local_time.hour >= 23:
         return
@@ -369,7 +371,7 @@ def _maybe_lean_alert(state, config, local_time, verdict, price_summary,
     58 % når 56 % av alle dagar går opp uansett, har du fått vite at
     du har to prosentpoeng - ikkje at du har eit signal.
     """
-    if not config.get("lean_alert_enabled", True):
+    if not config.get("lean_alert_enabled", False):
         return
     direction = verdict.get("direction")
     if direction not in ("opp", "ned"):

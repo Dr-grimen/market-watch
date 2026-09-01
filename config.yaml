@@ -156,9 +156,12 @@ briefing_minute: 40
 briefing_window_minutes: 25
 
 # --- Faktameldingar ---
-# Desse to er ikkje vurderingar. Eit tal som er sleppt og ei rørsle som
-# skjer er fakta, og dei går ut med ein gong utan at nokon har gjetta.
-event_alert_enabled: true        # "Core PCE kom inn på 0,1 % - venta var 0,2 %"
+# AV. Sondre 01.09: han vil ha tre typar melding og ikkje fleire - opp,
+# ned, grå. Eit tal utan retning er ikkje nokon av dei. Han fekk "Core
+# CPI kom inn på 0,2 %" og spurde kva han skulle med det, og det er eit
+# godt spørsmål: meldinga fortel noko som hende, men ikkje kva han skal
+# gjere. Då blir ho støy som gjer dei tre andre mindre verdt.
+event_alert_enabled: false       # "Core PCE kom inn på 0,1 % - venta var 0,2 %"
 move_alert_enabled: false         # "Det rører seg - Nasdaq ned 1,4 % no"
 # Éi melding per nivå. Ein dag som fell jamt skal ikkje gi tjue meldingar.
 move_alert_levels: [1.0, 2.0, 3.0]
