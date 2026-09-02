@@ -523,10 +523,19 @@ def run(mode="auto", dry_run=False):
 
     state = State.load()
 
-    if state.alerts_today() >= config.get("max_alerts_per_day", 6):
-        print("[main] dagleg varselgrense nådd - stille resten av døgnet")
-        state.save()
-        return 0
+    # Grensa gjeld VARSEL, ikkje morgonmeldinga. Ho er ein eigen kanal,
+    # og ein dag med mykje aktivitet er nettopp ein dag der neste morgon
+    # er verdt mest. Utan dette unntaket ville seks varsel gjere den
+    # komande morgonmeldinga stille - og da tyder stille to ting.
+    if state.alerts_today(tzname) >= config.get("max_alerts_per_day", 6):
+        if not briefing_due(local_time, config, state):
+            print("[main] dagleg varselgrense nådd - stille resten av dagen")
+            state.save()
+            return 0
+        print("[main] varselgrense nådd, men morgonmeldinga går ut likevel")
+        kun_briefing = True
+    else:
+        kun_briefing = False
 
     # 1. Prisar (gratis)
     quotes_by_asset = prices.fetch_all(config.get("assets", {}))
@@ -696,6 +705,13 @@ def run(mode="auto", dry_run=False):
                        world_summary, technical_summary, calendar_summary,
                        chart_summary, ensemble_summary, intradag_summary,
                        qqq_pris, pending, api_key, dry_run)
+
+    # Kom vi hit berre for morgonmeldinga, er dagsgrensa framleis nadd.
+    # Resten av koeyringa skal vere stille.
+    if kun_briefing:
+        print("[main] morgonmelding sendt - varselgrensa gjeld framleis")
+        state.save()
+        return 0
 
     if not candidates and not big_move:
         print("[main] ingenting å vurdere - stille")

@@ -6,10 +6,23 @@ mellom køyringar via cache-steget i workflowen.
 
 import json
 import time
+from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 STATE_PATH = ROOT / "state.json"
+
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    ZoneInfo = None
+
+
+def _dato(ts, tzname):
+    """Kva dato var det lokalt da dette skjedde?"""
+    if ZoneInfo is None:
+        return datetime.fromtimestamp(ts).strftime("%Y-%m-%d")
+    return datetime.fromtimestamp(ts, ZoneInfo(tzname)).strftime("%Y-%m-%d")
 
 # Kast bort sett-merke eldre enn dette, så fila ikkje veks i det uendelege.
 SEEN_TTL_SECONDS = 60 * 60 * 72
@@ -122,9 +135,17 @@ class State(object):
             return False
         return (time.time() - last) < cooldown_minutes * 60
 
-    def alerts_today(self):
-        cutoff = time.time() - 60 * 60 * 24
-        return len([t for t in self.alert_log if t > cutoff])
+    def alerts_today(self, tzname="Europe/Oslo"):
+        """Varsel sendt I DAG, etter kalender - ikkje siste 24 timar.
+
+        Skilnaden er ikkje akademisk. Med eit rullande vindauge ville
+        seks varsel maandag ettermiddag gjort tysdagen stille heilt til
+        klokka tok dei att - og morgonmeldinga same dag med. Da hadde
+        stille tydd to ulike ting, og heile poenget med gra dag er at
+        han tyder eitt.
+        """
+        i_dag = _dato(time.time(), tzname)
+        return len([t for t in self.alert_log if _dato(t, tzname) == i_dag])
 
     def record_alert(self, asset, direction):
         now = time.time()
