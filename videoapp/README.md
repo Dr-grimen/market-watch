@@ -16,7 +16,7 @@ prismodellen. Skjermane er lette å byte; desse er det ikkje.
 ```bash
 pip install -r requirements.txt
 python3 okonomi.py          # kva appen tener og brenn
-python3 -m pytest tests/ -q # 40 testar
+python3 -m pytest tests/ -q # 58 testar
 ```
 
 ---
@@ -143,6 +143,27 @@ Modellen er `claude-haiku-4-5` fordi dette går på kvar einaste generering.
 Vil du ha betre promptar, byt `MODELLAR` i fila — `claude-opus-5` er klart
 flinkare, men kostar vesentleg meir per kall.
 
+### `app/moderering.py` — portvakta
+
+Apple slepp deg ikkje inn utan. Fire kategoriar: barn, verkelege
+personar, seksuelt, ulovleg. Alt blir logga — utan sjølve biletet.
+
+Ho **feilar lukka**. Promptforbetringa feilar open (ned → lag videoen
+likevel); moderering feilar lukka (ned → lag ingenting). Asymmetrien er
+med vilje: ein dårleg prompt gir ein kjedeleg video, eit bilde som slepp
+gjennom kan koste deg appen.
+
+Treff på «barn» er **meldepliktig** — det skal til politiet, ikkje berre
+blokkerast. Avklar rutinen med advokat før lansering.
+
+### `app/jobb.py` — heile vegen
+
+Moderer → reserver → forbetre → generer → gjer opp eller frigi.
+Rekkjefølgja avgjer om folk blir trekte for noko dei ikkje fekk.
+Moderering *før* reservasjon: avviste brukarar har ikkje betalt noko.
+Kvar veg ut av funksjonen gjer anten opp eller frigir — testane sjekkar
+at ingen kredittar blir hengande.
+
 ### `okonomi.py` — før du endrar ein pris
 
 Marginar per nivå, kva failover gjer med dei, gratisbrenn per
@@ -169,9 +190,10 @@ planen var 20 gratiskredittar mot ein video til 50.
 
 - API-laget og kø (jobbane er synkrone i dag)
 - Lagring og CDN for ferdige videoar
-- Moderering — **Apple avviser appen utan**
 - Apple-kvitteringsvalidering mot `ledger.kjop()`
+- Vassmerke og deling — vekstmotoren
 - Malar, som er det som gjer novelty om til vane
+- Sjølve appen
 
 ---
 
