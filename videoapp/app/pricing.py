@@ -103,6 +103,12 @@ class Prisbok:
 
         self.gave_ved_registrering = int(raw["gaver"]["ved_registrering"])
 
+        v = raw.get("verving") or {}
+        self.verv_til_vervar = int(v.get("kredittar_til_vervar", 0))
+        self.verv_til_ny = int(v.get("kredittar_til_ny", 0))
+        self.verv_maks = int(v.get("maks_vervingar_per_brukar", 0))
+        self.verv_belon_ved = v.get("belon_ved", "foerste_video")
+
         ab = raw.get("abonnement") or {}
         self.abo_pris = float(ab.get("pris_nok", 0))
         self.abo_kredittar = int(ab.get("kredittar", 0))

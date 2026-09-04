@@ -135,3 +135,23 @@ abonnement:
   # Staar denne til true, er verste tilfellet ein abonnent kan koste
   # deg noeyaktig kvota - uansett kor mykje han masar.
   regenerering_kostar_kredittar: true
+
+verving:
+  # Vekst kostar pengar uansett. Spoersmaalet er berre om du betaler
+  # Apple for ein annonse eller ein brukar for ei anbefaling.
+  #
+  # Ein kjoept installasjon kostar 30-80 kr. Ei verving kostar deg
+  # kredittane under, altsaa under fem kroner i faktisk GPU-forbruk.
+  # Det er den billegaste kanalen du har - men berre om han ikkje kan
+  # farmast, difor taka.
+
+  kredittar_til_vervar: 20      # den som delte
+  kredittar_til_ny: 20          # den som kom
+  maks_vervingar_per_brukar: 25 # taket som gjer farming ulonsamt
+
+  # VIKTIG: naar blir vervinga utbetalt?
+  #
+  # Betaler du paa klikk, betaler du for bottar. Betaler du foerst naar
+  # den nye brukaren faktisk har laga ein video, betaler du for ekte
+  # folk. Det er skilnaden mellom ein vekstkanal og eit pengesluk.
+  belon_ved: foerste_video

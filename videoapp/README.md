@@ -247,6 +247,44 @@ han frå tokenet, kan du ikkje gløyme det.
 export VIDEOAPP_TOKEN_NOKKEL=$(python3 -c "import secrets; print(secrets.token_urlsafe(48))")
 ```
 
+### `app/deling.py` — vekstkanalen
+
+Med null gratiskredittar er betalt annonsering utelukka, så veksten må
+vere organisk. Då er delingssløyfa produktet, ikkje ein finpuss.
+
+Tre avgjerder avgjer om dette blir ein kanal eller eit pengesluk:
+
+1. **Belønning ved handling, ikkje ved klikk.** Betaler du når nokon
+   opnar ei lenke, betaler du for bottar. Betaler du først når den nye
+   brukaren har laga sin første video, betaler du for ekte folk.
+2. **Tak per vervar** (25). Utan tak er dette eit pengetrykkeri for den
+   som orkar å lage kontoar.
+3. **Delingstokenet er ikkje jobb-id-en.** Deler du den interne id-en,
+   kan folk telje seg fram til andre sine videoar.
+
+Testane er farmingforsøk: sjølvverving, same brukar verva to gonger,
+dobbel utløysing, og ein farmar som lagar 35 kontoar og berre får
+betalt for 25.
+
+Ei verving kostar deg under 20 kr i faktisk forbruk mot 30–80 kr for
+ein kjøpt installasjon. Ein test held den grensa.
+
+### `app/vassmerke.py` — annonsen på videoen
+
+Vassmerket er ikkje pynt. Ein delt video utan merke er ei gratis
+levering til nokon andre sin feed. Difor **feilar denne lukka**: klarer
+vi ikkje å merke videoen, deler vi han ikkje.
+
+Teksten blir brend inn i biletet, ikkje lagd som eit overlegg-spor —
+eit spor kan strippast med eitt kommandolinjekall.
+
+> **Krev ffmpeg.** Er han ikkje installert, seier `tilgjengeleg()` nei,
+> og deling skal skru seg av heilt i staden for å sende ut umerkte filer.
+
+Brukartekst blir escapa før han går inn i `drawtext`-filteret. Utan det
+kunne ein brukar med kolon i namnet skrive sitt eige ffmpeg-filter inn
+i kommandoen vår. Det er testa.
+
 ### `okonomi.py` — før du endrar ein pris
 
 Marginar per nivå, kva failover gjer med dei, gratisbrenn per
