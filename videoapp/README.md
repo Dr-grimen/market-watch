@@ -164,6 +164,36 @@ Moderering *før* reservasjon: avviste brukarar har ikkje betalt noko.
 Kvar veg ut av funksjonen gjer anten opp eller frigir — testane sjekkar
 at ingen kredittar blir hengande.
 
+### `app/ko.py` + `app/arbeidar.py` — svaret på «millionar samtidig»
+
+Jobben er delt i to fordi halvdelane har heilt ulik hastigheit:
+
+**Bestilling** (raskt, brukaren ventar): moderer → reserver kredittar →
+legg i kø. Han får med ein gong vite om han blei avvist eller er tom for
+kredittar. Det er dei to svara han treng no.
+
+**Køyring** (tregt, ein arbeidar tek det): forbetre prompt → generer →
+gjer opp eller frigi. Brukaren får push når det er klart.
+
+Reservasjonen skjer ved **bestilling**, ikkje ved køyring. Elles kunne
+ein brukar leggje hundre jobbar i kø med saldo til ti, og nittien ville
+feila heilt til slutt etter å ha teke plass i køen heile vegen.
+
+Fire ting ein naiv kø ikkje gjer:
+
+1. **Rettferdig fordeling.** Vi hentar alltid frå brukaren med færrast
+   jobbar i arbeid. Legg éin brukar inn hundre jobbar, blokkerer han
+   ikkje alle andre.
+2. **Atomisk uttak.** To arbeidarar kan ikkje få same jobb.
+3. **Gjenoppretting.** Ein arbeidar som kræsjar held ikkje jobben for evig.
+4. **Botnfall.** Ein jobb som feilar for mange gonger blir lagd til side —
+   **og kredittane frigitte.**
+
+Punkt 4 er den viktigaste linja i heile prosjektet. Ein jobb som gir opp
+og held på kredittane er ein brukar som har betalt for ingenting.
+`test_ingen_kredittar_heng_igjen_uansett_kva_som_skjer` blandar suksess,
+mellombelse og varige feil om kvarandre og krev at summen går opp.
+
 ### `okonomi.py` — før du endrar ein pris
 
 Marginar per nivå, kva failover gjer med dei, gratisbrenn per
@@ -212,6 +242,16 @@ leverandøren sine vilkår i det heile tillet kommersiell bruk.
 lotterilov og krev løyve frå Lotteritilsynet. Ein ferdigheitskonkurranse
 der ein jury kårar beste video er det ikkje. Apple krev i tillegg at du
 står som sponsor og at Apple blir fråskrivne ansvar.
+
+**Vekst.** Med null gratiskredittar er betalt annonsering utelukka:
+50 kr per installasjon og 2 % som teiknar abonnement gir 2500 kr per
+abonnent, mot 55 kr i månadleg forteneste. Det tek 30+ månader å tene
+inn, og ingen blir så lenge. Konsekvensen er at veksten **må** vere
+organisk — delingssløyfa er produktet, ikkje ein finpuss.
+
+Vurder å rekne om att på éin gratis video med vassmerke. Ikkje som
+gåve, men som annonsebudsjett: 1,70 kr per installasjon mot 50 kr for
+ein kjøpt. Det er tretti gonger billegare enn App Store-annonsar.
 
 **Skala.** Flaskehalsen er ikkje serverane dine — det er kvoten hos
 leverandøren. 1 million brukarar med éin video dagleg er ~12 genereringar

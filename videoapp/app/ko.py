@@ -151,6 +151,15 @@ class Ko:
 
     # -- avslutte ----------------------------------------------------
 
+    def knyt_reservasjon(self, jobb_id, reservasjon_id):
+        """Kva reservasjon som skal gjerast opp eller frigivast for denne.
+
+        Utan denne koplinga veit ikkje arbeidaren kva han skal frigi når
+        ein jobb gir opp, og kredittane blir hengande.
+        """
+        self.db.execute("UPDATE jobb SET reservasjon_id = ? WHERE id = ?",
+                        (reservasjon_id, jobb_id))
+
     def fullfor(self, jobb_id, video_url, reservasjon_id=None):
         self.db.execute(
             "UPDATE jobb SET status = ?, video_url = ?, avslutta = ?,"
