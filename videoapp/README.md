@@ -194,6 +194,31 @@ og held på kredittane er ein brukar som har betalt for ingenting.
 `test_ingen_kredittar_heng_igjen_uansett_kva_som_skjer` blandar suksess,
 mellombelse og varige feil om kvarandre og krev at summen går opp.
 
+### `app/api.py` — HTTP-laget
+
+Fire endepunkt er alt appen treng: `POST /video`, `GET /video/{id}`,
+`GET /saldo/{brukar}`, `GET /helse`.
+
+Bestilling svarar med ein gong og ventar **aldri** på videoen. Held du
+HTTP-tilkoplinga open medan genereringa går, klarer du nokre hundre
+samtidige brukarar. Slepper du henne, klarer du millionar.
+
+Statuskodane er ikkje kosmetikk — appen brukar dei til å velje skjerm:
+
+| kode | tyder | appen viser |
+|---|---|---|
+| 202 | i kø | ventestatus med plass i køen |
+| 402 | tom for kredittar | kjøpsskjermen |
+| 422 | avvist av moderering | grunnen, til brukaren |
+
+`GET /helse` svarar på om kredittrekneskapen går opp. **Overvak den.**
+Svarar han nei, har du ein bug som lagar eller øydelegg kredittar, og
+det er ein alarm — ikkje ei logglinje.
+
+> **Autentisering manglar.** Brukar-id kjem frå ein header som kven som
+> helst kan setje. Bytt til eit signert token før lansering, elles kan
+> kven som helst bruke andre sine kredittar.
+
 ### `okonomi.py` — før du endrar ein pris
 
 Marginar per nivå, kva failover gjer med dei, gratisbrenn per

@@ -70,8 +70,15 @@ CREATE INDEX IF NOT EXISTS idx_jobb_brukar ON jobb(brukar, status);
 class Ko:
     def __init__(self, sti=":memory:", maks_forsok=MAKS_FORSOK,
                  forlaten_etter=FORLATEN_ETTER):
-        self.db = sqlite3.connect(sti, isolation_level=None)
+        # check_same_thread=False fordi ein webserver handsamar
+        # foresporslar i fleire traadar. Skrivingane er serialiserte av
+        # BEGIN IMMEDIATE, saa det er trygt her - men SQLite er uansett
+        # berre for utvikling. Byt til Postgres foer lansering; da blir
+        # BEGIN IMMEDIATE til SELECT ... FOR UPDATE.
+        self.db = sqlite3.connect(sti, isolation_level=None,
+                                  check_same_thread=False)
         self.db.row_factory = sqlite3.Row
+        self.db.execute("PRAGMA busy_timeout = 5000")
         self.db.executescript(SKJEMA)
         self.maks_forsok = maks_forsok
         self.forlaten_etter = forlaten_etter
