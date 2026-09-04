@@ -8,3 +8,5 @@ logs/
 cache/
 predictions.json
 simulering.json
+bruktbil/handlar.db
+bruktbil/*.db
