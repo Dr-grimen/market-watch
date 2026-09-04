@@ -23,7 +23,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
 
 from .auth import AuthFeil, les_token
-from .jobb import AVVIST, FOR_LITE
+from .jobb import AVVIST, FOR_LITE, USIKKER
 
 log = logging.getLogger(__name__)
 
@@ -60,6 +60,11 @@ def lag_app(bestilling, ko, ledger, prisbok, token_nokkel=None):
         jobb_id, utfall = bestilling.bestill(
             brukar, t.bilde_url, t.onske, t.nivaa, idem=t.idem)
 
+        if utfall.status == USIKKER:
+            # 503, ikkje 422. Moderatoren vaar er nede - det er ikkje
+            # brukaren sitt innhald som er problemet, og appen skal be
+            # han prove igjen i staden for aa seie at han gjorde noko gale.
+            raise HTTPException(503, utfall.grunn)
         if utfall.status == AVVIST:
             # 422, ikkje 500. Dette er eit gyldig svar på ei ugyldig
             # tinging, og appen skal vise grunnen til brukaren.

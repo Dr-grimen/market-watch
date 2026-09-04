@@ -25,7 +25,7 @@ det er den feilen som gir deg eitt-stjerners omtalar.
 import logging
 
 from . import ko as ko_modul
-from .jobb import AVVIST, FEILA, FOR_LITE, OK, Utfall
+from .jobb import AVVIST, FEILA, FOR_LITE, OK, USIKKER, Utfall
 from .prompt import forbetre
 from .providers.base import Jobb, VarigFeil
 from .providers.router import IngenLeverandor
@@ -50,7 +50,9 @@ class Bestilling:
         vurdering = self.moderering.sjekk(onske, bilde_b64=bilde_b64,
                                           brukar=brukar)
         if not vurdering.ok:
-            return None, Utfall(status=AVVIST, grunn=vurdering.grunn)
+            return None, Utfall(
+                status=USIKKER if vurdering.usikker else AVVIST,
+                grunn=vurdering.grunn)
 
         jobb_id = self.ko.legg_til(brukar, bilde_url, onske, nivaa, idem=idem)
 

@@ -32,6 +32,7 @@ OK = "ok"
 AVVIST = "avvist"              # moderering sa nei - ingen kredittar trekte
 FOR_LITE = "for_lite"          # tom saldo - ingen kredittar trekte
 FEILA = "feila"                # vi klarte det ikkje - kredittar frigitte
+USIKKER = "usikker"            # VI klarte ikkje sjekke. Vaar feil, ikkje deira.
 
 
 @dataclass(frozen=True)
@@ -73,7 +74,12 @@ class Verkstad:
         vurdering = self.moderering.sjekk(onske, bilde_b64=bilde_b64,
                                           brukar=brukar)
         if not vurdering.ok:
-            return Utfall(status=AVVIST, grunn=vurdering.grunn)
+            # Skil mellom "innhaldet er avvist" og "vi klarte ikkje sjekke".
+            # Det fyrste skal brukaren ikkje prove igjen; det andre skal
+            # han prove igjen, og det er vi som har eit problem.
+            return Utfall(
+                status=USIKKER if vurdering.usikker else AVVIST,
+                grunn=vurdering.grunn)
 
         # 2. Reserver. Feilar dette, er ingenting trekt.
         try:

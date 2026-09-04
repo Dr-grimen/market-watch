@@ -247,6 +247,39 @@ han frå tokenet, kan du ikkje gløyme det.
 export VIDEOAPP_TOKEN_NOKKEL=$(python3 -c "import secrets; print(secrets.token_urlsafe(48))")
 ```
 
+### `kjor.py` — start tenesta
+
+```bash
+cp .env.example .env      # fyll inn noeklane
+python3 kjor.py           # API + ein arbeidar
+```
+
+Appen **nektar å starte** utan nøklane han treng, og seier alt som
+manglar på ein gong. Ein app som startar halvvegs og feilar først når
+ein brukar prøver noko er verre enn ein som ikkje startar.
+
+I produksjon køyrer du dei kvar for seg — `--berre-api` bak ein
+lastbalanserar, og `--berre-arbeidar` som eigne prosessar du skalerer
+etter kølengda. Det er heile grunnen til at dei er delte. Ein arbeidar
+som held på i eitt minutt stel tid frå eit API som skal svare på
+millisekund.
+
+Arbeidarsløyfa ryddar fastlåste reservasjonar kvart femte minutt. Utan
+det blir kredittar hengande når ein arbeidar kræsjar midt i ein jobb.
+
+### Nøklar
+
+Nøklar kjem frå miljøet, aldri frå kode. `.env` er i `.gitignore`.
+
+**Bruk ein eigen nøkkel for appen** — ikkje den same som du brukar til
+noko anna. Med delt nøkkel kan du ikkje trekkje tilbake den eine utan å
+drepe den andre, du ser ikkje kva appen faktisk kostar, og eit
+trafikkhopp i appen bremsar alt anna du gjer.
+
+Lekk ein nøkkel: trekk han tilbake hos leverandøren **først**, lag ein
+ny, og gå ut frå at den gamle er i bruk. Å fjerne han frå git-historikken
+er ikkje nok — han er alt kopiert.
+
 ### `app/deling.py` — vekstkanalen
 
 Med null gratiskredittar er betalt annonsering utelukka, så veksten må

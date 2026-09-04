@@ -132,3 +132,18 @@ def test_helse_seier_om_rekneskapen_stemmer(rigg):
     c, _, _ = rigg()
     r = c.get("/helse")
     assert r.status_code == 200 and r.json()["ok"] is True
+
+
+def test_moderator_nede_gir_503_ikkje_422(rigg):
+    """Skilnaden mellom "du gjorde noko gale" og "vi har eit problem".
+
+    Feilar moderatoren vaar, skal brukaren bli bedd om aa prove igjen -
+    ikkje faa beskjed om at innhaldet hans blei avvist.
+    """
+    c, _, _ = rigg(vurdering=Vurdering(
+        ok=False, usikker=True,
+        grunn="Vi klarte ikkje å sjekke innhaldet no. Prøv igjen om litt."))
+    r = c.post("/video", json={"bilde_url": "https://d/b.jpg", "onske": "gå"},
+               headers=H)
+    assert r.status_code == 503
+    assert "Prøv igjen" in r.json()["detail"]
