@@ -1,0 +1,104 @@
+# Kostnadstabellen. DETTE er fila du oppdaterer, ikkje koden.
+#
+# Prisane under fell typisk 30-60 % i året, og kven som er billegast
+# byttar med nokre månaders mellomrom. Difor ligg dei her og ikkje i
+# ein if-setning. Sjekk dei mot leverandøren si prisliste kvar månad.
+#
+# usd_per_second er DIN innkjøpspris. Alt anna blir rekna ut frå han.
+#
+# Opplosningar er BOETTER (lav/medium/hd), ikkje tal. Kvar leverandor
+# seier kva boetta heiter hos seg, og den strengen gaar rett i API-kallet.
+# Utan boetter blir 720p og 768p to ulike ting, og den billegaste
+# leverandoren blir stille aldri vald.
+
+valuta:
+  # Kva ein dollar kostar deg i kroner. Oppdater ved store hopp.
+  nok_per_usd: 10.50
+
+leverandorar:
+
+  minimax_hailuo_fast:
+    visingsnamn: "MiniMax Hailuo (fast)"
+    usd_per_second: 0.030
+    stottar: [bilde_til_video, tekst_til_video]
+    maks_sekund: 6
+    opplosningar: {lav: 512P, medium: 768P}
+    region: cn              # utanfor EOS - sjaa gdpr-notatet i README
+
+  minimax_hailuo_02:
+    visingsnamn: "MiniMax Hailuo 02"
+    usd_per_second: 0.055
+    stottar: [bilde_til_video, tekst_til_video]
+    maks_sekund: 10
+    opplosningar: {medium: 768P, hd: 1080P}
+    region: cn
+
+  seedance_lite:
+    visingsnamn: "Seedance 1.0 Lite"
+    usd_per_second: 0.025
+    stottar: [bilde_til_video, tekst_til_video]
+    maks_sekund: 10
+    opplosningar: {lav: 480p, medium: 720p}
+    region: cn
+
+  wan_serverless:
+    visingsnamn: "Wan 2.2 (open weights)"
+    usd_per_second: 0.018
+    stottar: [bilde_til_video, tekst_til_video]
+    maks_sekund: 5
+    opplosningar: {lav: 480p, medium: 720p}
+    region: eu              # kan sjolvhostast - dette er EOS-utvegen
+    aktiv: false            # slaa paa naar du har testa kvaliteten
+
+  runway_turbo:
+    visingsnamn: "Runway Gen-4 Turbo"
+    usd_per_second: 0.050
+    stottar: [bilde_til_video, tekst_til_video]
+    maks_sekund: 10
+    opplosningar: {medium: 720p, hd: 1080p}
+    region: us
+    aktiv: false
+
+# Produktnivaa. Kreditprisen er det brukaren betaler.
+# Marginen blir rekna ut mot faktisk leverandorkostnad, ikkje gjetta.
+nivaa:
+
+  gratis:
+    visingsnamn: "Gratis"
+    sekund: 5
+    opplosning: lav
+    kredittar: 10
+    # Gratistrinnet skal alltid gaa paa det billegaste som finst.
+    tving_billegast: true
+
+  standard:
+    visingsnamn: "Standard"
+    sekund: 5
+    opplosning: medium
+    kredittar: 10
+
+  lang:
+    visingsnamn: "Lang"
+    sekund: 10
+    opplosning: medium
+    kredittar: 25
+
+  hd:
+    visingsnamn: "HD"
+    sekund: 5
+    opplosning: hd
+    kredittar: 30
+
+okonomi:
+  # 1 kreditt = denne prisen i kroner naar brukaren kjoeper for fullpris.
+  nok_per_kreditt: 1.00
+  # Apple sitt kutt. 0.15 under Small Business Program, 0.30 over 1 mill USD.
+  app_store_kutt: 0.15
+  # Lagring, CDN, transkoding, moderering per levert video.
+  faste_kroner_per_video: 2.00
+  # Under denne bruttomarginen skal build-et klage. Sjaa test_pricing.py.
+  minste_margin: 0.35
+
+gaver:
+  # Kva ein ny brukar faar. 20 kredittar = 2 gratisvideoar paa gratisnivaa.
+  ved_registrering: 20
