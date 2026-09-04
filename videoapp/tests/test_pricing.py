@@ -65,30 +65,58 @@ def test_kvart_nivaa_har_minst_ein_leverandor(p):
         assert p.kandidatar(nokkel), f"Ingen leverandør klarer {nokkel!r}"
 
 
-def test_gratisnivaaet_gaar_paa_det_billegaste(p):
-    """Gratisbrenn er den største enkeltrisikoen. Han skal vere minst mogleg."""
-    gratis = p.nivaa["gratis"]
-    assert gratis.tving_billegast
+def test_billegaste_nivaa_gaar_paa_billegaste_leverandor(p):
+    rask = p.nivaa["rask"]
+    assert rask.tving_billegast
     billegast_totalt = min(
         (l for l in p.leverandorar.values() if l.aktiv),
         key=lambda l: l.usd_per_second)
-    vald = p.billegaste("gratis")
+    vald = p.billegaste("rask")
     assert vald.usd_per_second == billegast_totalt.usd_per_second, (
-        f"Gratisnivået går på {vald.nokkel}, men {billegast_totalt.nokkel} "
-        "er billegare. Kvar gratisvideo kostar deg meir enn han treng.")
+        f"Rask-nivået går på {vald.nokkel}, men {billegast_totalt.nokkel} "
+        "er billegare.")
 
 
-def test_gratisgaava_rekk_til_minst_ein_video(p):
-    """Feilen i den opphavlege planen: 20 kredittar, 50 per video.
+def test_gratisgaava_er_null_eller_daekker_ein_video(p):
+    """Anten gir vi ingenting, eller nok til å faktisk lage noko.
 
-    Får ikkje ein ny brukar laga NOKO, er første inntrykk at appen
-    berre vil ha pengar. Då er heile gratistrinnet bortkasta.
+    Mellomtinget - nokre kredittar som ikkje rekk til ein video - er
+    det verste: du betaler for lagring og støtte, brukaren får ingenting,
+    og første inntrykk er at appen berre vil ha pengar.
     """
-    gratis = p.nivaa["gratis"]
-    assert p.gave_ved_registrering >= gratis.kredittar, (
+    if p.gave_ved_registrering == 0:
+        return
+    billegaste_video = min(n.kredittar for n in p.nivaa.values())
+    assert p.gave_ved_registrering >= billegaste_video, (
         f"Nye brukarar får {p.gave_ved_registrering} kredittar, men den "
-        f"billegaste videoen kostar {gratis.kredittar}. Dei får ikkje "
-        "laga noko som helst.")
+        f"billegaste videoen kostar {billegaste_video}.")
+
+
+def test_abonnement_gaar_i_pluss_paa_kvart_nivaa(p):
+    """Verste fall: abonnenten brukar HEILE kvota på det dyraste nivået.
+
+    Dette er grunnen til at kvota er i kredittar og ikkje i videoar.
+    Lovar du "25 videoar", kan abonnenten veksle dei inn i HD og bli
+    ulønsam. Med kredittar kostar ein HD-video tre gonger så mykje av
+    kvota, og rekninga går opp uansett kva han vel.
+    """
+    for nokkel in p.nivaa:
+        a = p.abonnement(nokkel, forsok=FORSOK)
+        margin = a["verste_forteneste"] / a["netto"]
+        assert margin >= p.abo_minste_margin_verstefall, (
+            f"Ein abonnent som brukar heile kvota på {nokkel!r} gir "
+            f"{margin:.1%} margin, krev "
+            f"{p.abo_minste_margin_verstefall:.0%}. Anten kostar nivået "
+            "for få kredittar, eller kvota er for stor.")
+
+
+def test_abonnement_taaler_kravstore_brukarar(p):
+    """Same test, men med folk som regenererer mykje."""
+    for nokkel in p.nivaa:
+        a = p.abonnement(nokkel, forsok=FORSOK_VERSTEFALL)
+        assert a["verste_forteneste"] > 0, (
+            f"Abonnent som brukar alt på {nokkel!r} og regenererer "
+            f"{FORSOK_VERSTEFALL}x TAPAR {-a['verste_forteneste']:.0f} kr.")
 
 
 def test_manglande_nivaa_gir_tydeleg_feil(p):

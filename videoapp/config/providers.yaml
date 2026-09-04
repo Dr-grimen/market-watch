@@ -63,12 +63,12 @@ leverandorar:
 # Marginen blir rekna ut mot faktisk leverandorkostnad, ikkje gjetta.
 nivaa:
 
-  gratis:
-    visingsnamn: "Gratis"
+  rask:
+    visingsnamn: "Rask"
     sekund: 5
     opplosning: lav
     kredittar: 10
-    # Gratistrinnet skal alltid gaa paa det billegaste som finst.
+    # Billegaste nivaaet skal alltid gaa paa billegaste leverandoer.
     tving_billegast: true
 
   standard:
@@ -100,5 +100,38 @@ okonomi:
   minste_margin: 0.35
 
 gaver:
-  # Kva ein ny brukar faar. 20 kredittar = 2 gratisvideoar paa gratisnivaa.
-  ved_registrering: 20
+  # Ingenting gratis. Avgjort etter aa ha sett gratisbrennet:
+  # 1 million registreringar hadde kosta 3,4 millionar kroner foer
+  # eit einaste sal. Sjaa README om kva dette kostar i konvertering.
+  ved_registrering: 0
+
+abonnement:
+  # Kva vi LOVAR i App Store, og kva vi faktisk betaler for.
+  #
+  # Skilnaden er heile forretninga: du prisar mot lova tal, men
+  # betaler for bruka tal. Dei som ikkje brukar opp kvota er marginen.
+  #
+  # Kvota maa likevel taale ein brukar som brukar HEILE hoe - elles
+  # tapar du pengar paa dei ivrigaste kundane dine, som er dei same
+  # som anbefaler appen vidare.
+  # Kvota er i KREDITTAR, ikkje videoar. Det er heile poenget:
+  # ein HD-video kostar tre gonger ein standard, saa ein abonnent kan
+  # ikkje veksle kvota si inn i det dyraste og gjere seg sjolv
+  # ulonsam. Lovar du "25 videoar" i staden, kan han det.
+  pris_nok: 149
+  kredittar: 250            # = 25 standardvideoar, eller 8 HD
+  venta_bruk: 0.60          # kor stor del av kvota folk faktisk brukar
+  minste_margin_verstefall: 0.15
+
+  # AVGJERD: kostar det kredittar aa generere paa nytt?
+  #
+  # true  - kvota er eit hardt tak paa kva ein abonnent kan koste deg.
+  #         Regenererer han mykje, faar han faerre ferdige videoar.
+  #         Dette er slik Midjourney og Runway gjer det.
+  # false - du betaler for kvar regenerering utan tak. Ein kravstor
+  #         brukar kan gaa i minus for deg. Kjennest snillare, men
+  #         du maa kutte kvota kraftig for aa taale det.
+  #
+  # Staar denne til true, er verste tilfellet ein abonnent kan koste
+  # deg noeyaktig kvota - uansett kor mykje han masar.
+  regenerering_kostar_kredittar: true

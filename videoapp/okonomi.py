@@ -49,10 +49,16 @@ def vis_failover(p, forsok):
               f"{verst.nokkel:<20} {m.margin:>6.1%}")
 
 
-def vis_gratisbrenn(p, brukarar, forsok):
-    """Den største enkeltrisikoen i heile forretninga."""
-    gratis = p.nivaa["gratis"]
-    lev = p.billegaste("gratis")
+def vis_brenn(p, brukarar, forsok):
+    """Den største enkeltrisikoen i heile forretninga - viss du har gaave."""
+    if p.gave_ved_registrering == 0:
+        print("\nGRATISBRENN")
+        linje()
+        print("Ingen gratiskredittar. Ein registrering som aldri betaler")
+        print("kostar deg null i generering.")
+        return
+    gratis = p.nivaa["rask"]
+    lev = p.billegaste("rask")
     per_video = lev.kostnad_nok(gratis.sekund, p.nok_per_usd) * forsok
     videoar = p.gave_ved_registrering // gratis.kredittar
     per_brukar = per_video * videoar
@@ -67,30 +73,48 @@ def vis_gratisbrenn(p, brukarar, forsok):
               .replace(",", " "))
 
 
-def vis_abonnement(p, forsok, pris=149, kredittar=400, bruk=0.6):
-    """Abonnement er RABATTEN, ikkje påslaget. Det er det som gir attendevending."""
-    standard = p.nivaa["standard"]
-    lev = p.billegaste("standard")
-    per_video = lev.kostnad_nok(standard.sekund, p.nok_per_usd) * forsok
-
-    netto = pris * (1 - p.app_store_kutt)
-    brukte = kredittar * bruk
-    videoar = brukte / standard.kredittar
-    kostnad = videoar * (per_video + p.faste_kroner_per_video)
-    forteneste = netto - kostnad
-
-    print(f"\nABONNEMENT   ({pris} kr/mnd, {kredittar} kredittar, "
-          f"{bruk:.0%} blir brukt)")
+def vis_abonnement(p, forsok):
+    """Abonnement er RABATTEN, ikkje paalegget. Det er det som gir attendevending."""
+    print(f"\nABONNEMENT   ({p.abo_pris:.0f} kr/mnd, {p.abo_kredittar} kredittar, "
+          f"{p.abo_venta_bruk:.0%} av kvota blir brukt)")
     linje()
-    print(f"  Netto etter Apple ({p.app_store_kutt:.0%}):  {netto:>8.2f} kr")
-    print(f"  Brukar {videoar:.0f} videoar:            {-kostnad:>8.2f} kr")
-    print(f"  = forteneste per abonnent:   {forteneste:>8.2f} kr "
-          f"({forteneste / netto:.0%})")
-    print(f"\n  Kredittar som forfell ubrukte: {kredittar * (1 - bruk):.0f} "
-          f"({1 - bruk:.0%}) - dette er rein margin.")
-    if forteneste > 0:
-        print(f"  Tåler ein kundeanskaffingskostnad på {forteneste:.0f} kr "
-              "per månad abonnenten blir verande.")
+    if p.regenerering_kostar:
+        print("Regenerering kostar kredittar -> kvota er eit HARDT tak paa")
+        print("kva ein abonnent kan koste deg, uansett kor mykje han masar.")
+    else:
+        print("Regenerering er GRATIS -> ein kravstor brukar har ikkje tak.")
+    linje()
+    print(f"{'nivaa':<10} {'videoar':>8} {'kr/vid':>7} {'venta':>8} {'verste':>8} "
+          f"{'v/2.5x':>8}")
+    linje()
+    for nokkel in p.nivaa:
+        a = p.abonnement(nokkel, forsok=forsok)
+        b = p.abonnement(nokkel, forsok=2.5)
+        flagg = "" if a["verste_forteneste"] > 0 else "  <-- TAP"
+        print(f"{nokkel:<10} {a['videoar']:>8.0f} {a['per_video']:>7.2f} "
+              f"{a['venta_forteneste']:>+8.0f} {a['verste_forteneste']:>+8.0f} "
+              f"{b['verste_forteneste']:>+8.0f}{flagg}")
+    linje()
+    a = p.abonnement("standard", forsok=forsok)
+    print(f"Taaler ein kundeanskaffingskostnad paa {a['verste_forteneste']:.0f} kr")
+    print("per maanad abonnenten blir verande - sjolv i verste fall.")
+
+
+def vis_kva_prisen_baer(p, forsok):
+    """Svaret paa 'kor mange videoar for X kroner'."""
+    print("\nKVA EIN PRIS BER   (standardvideo, med marginkravet i konfigen)")
+    linje()
+    print(f"{'pris':>6} {'netto':>8} {'kredittar':>10} {'videoar':>9}")
+    linje()
+    per_video = p.pris_per_levert_video("standard", forsok=forsok)
+    for pris in (49, 99, 149, 249, 399):
+        n = p.kor_mange_videoar(pris, forsok=forsok, bruk=1.0)
+        std = p.nivaa["standard"]
+        print(f"{pris:>6.0f} {pris * (1 - p.app_store_kutt):>8.2f} "
+              f"{n * std.kredittar:>10} {n:>9}")
+    linje()
+    print(f"Per levert standardvideo: {per_video:.2f} kr "
+          f"(GPU + {p.faste_kroner_per_video:.2f} kr fast)")
 
 
 def main():
@@ -99,7 +123,7 @@ def main():
                     help="genereringar per levert video (standard 1.3)")
     ap.add_argument("--brukarar", type=int, default=5_000_000,
                     help="tal registreringar å rekne gratisbrenn for")
-    ap.add_argument("--abonnement", type=float, default=149)
+    ap.add_argument("--abonnement", type=float, default=0)
     args = ap.parse_args()
 
     p = Prisbok()
@@ -109,8 +133,9 @@ def main():
 
     vis_nivaa(p, args.forsok)
     vis_failover(p, args.forsok)
-    vis_gratisbrenn(p, args.brukarar, args.forsok)
-    vis_abonnement(p, args.forsok, pris=args.abonnement)
+    vis_brenn(p, args.brukarar, args.forsok)
+    vis_kva_prisen_baer(p, args.forsok)
+    vis_abonnement(p, args.forsok)
     print("\nAlle tal frå config/providers.yaml. Endre der, ikkje her.\n")
 
 
