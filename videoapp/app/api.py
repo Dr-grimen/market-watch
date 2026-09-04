@@ -13,9 +13,8 @@ generering tek eit minutt; held du HTTP-tilkoplinga open imens, klarer
 du nokre hundre samtidige brukarar. Slepper du henne, klarer du
 millionar, og køen bestemmer farten.
 
-Autentisering er IKKJE med her. Brukar-id kjem frå ein header, og det
-er openbert utrygt. Set ekte token-validering framfor dette før
-lansering - sjå merknaden ved _brukar().
+Brukar-id kjem frå eit signert token i Authorization-headeren, ikkje
+frå ein header klienten kan finne på sjølv. Sjå app/auth.py.
 """
 
 import logging
@@ -23,6 +22,7 @@ import logging
 from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
 
+from .auth import AuthFeil, les_token
 from .jobb import AVVIST, FOR_LITE
 
 log = logging.getLogger(__name__)
@@ -35,16 +35,22 @@ class Tinging(BaseModel):
     idem: str | None = Field(default=None, max_length=200)
 
 
-def lag_app(bestilling, ko, ledger, prisbok):
+def lag_app(bestilling, ko, ledger, prisbok, token_nokkel=None):
     app = FastAPI(title="videoapp")
 
-    def _brukar(x_brukar_id: str = Header(default="")):
-        # MIDLERTIDIG. Dette stolar på ein header, som kven som helst
-        # kan setje. Bytt til validering av eit signert token før
-        # lansering, elles kan kven som helst bruke andre sine kredittar.
-        if not x_brukar_id:
-            raise HTTPException(401, "Manglar X-Brukar-Id")
-        return x_brukar_id
+    def _brukar(authorization: str = Header(default="")):
+        """Brukar-id frå eit signert token. Feilar lukka.
+
+        Alle avvisingar gir same svar. Skil du mellom "manglar token",
+        "utgått" og "feil signatur", fortel du ein angripar kva han
+        skal justere.
+        """
+        if not authorization.startswith("Bearer "):
+            raise HTTPException(401, "Ugyldig token")
+        try:
+            return les_token(authorization[7:], token_nokkel)
+        except AuthFeil:
+            raise HTTPException(401, "Ugyldig token") from None
 
     @app.post("/video", status_code=202)
     def bestill(t: Tinging, brukar: str = Depends(_brukar)):
@@ -81,10 +87,14 @@ def lag_app(bestilling, ko, ledger, prisbok):
             "grunn": rad["grunn"],
         }
 
-    @app.get("/saldo/{brukar_id}")
-    def saldo(brukar_id: str, brukar: str = Depends(_brukar)):
-        if brukar_id != brukar:
-            raise HTTPException(403, "Ikkje din saldo")
+    @app.get("/saldo")
+    def saldo(brukar: str = Depends(_brukar)):
+        """Ingen brukar-id i stien - tokenet seier kven du er.
+
+        Tek du id-en frå stien, må du hugse å sjekke at han stemmer med
+        tokenet kvar einaste gong. Tek du han frå tokenet, kan du ikkje
+        gløyme det.
+        """
         return {"kredittar": ledger.saldo(brukar),
                 "reservert": ledger.reservert(brukar)}
 

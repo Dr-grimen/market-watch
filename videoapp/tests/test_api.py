@@ -13,6 +13,7 @@ from fastapi.testclient import TestClient
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.api import lag_app
+from app.auth import lag_token
 from app.arbeidar import Bestilling
 from app.ko import Ko
 from app.ledger import Ledger
@@ -37,14 +38,16 @@ def rigg():
 
     def bygg(vurdering=GODKJENT):
         b = Bestilling(ko, lg, p, FalskModerering(vurdering))
-        return TestClient(lag_app(b, ko, lg, p)), ko, lg
+        return TestClient(lag_app(b, ko, lg, p, token_nokkel=NOKKEL)), ko, lg
 
     yield bygg
     lg.close()
     ko.close()
 
 
-H = {"X-Brukar-Id": "ola"}
+NOKKEL = "t" * 40
+H = {"Authorization": "Bearer " + lag_token("ola", NOKKEL)}
+H_KARI = {"Authorization": "Bearer " + lag_token("kari", NOKKEL)}
 
 
 def test_bestilling_gir_202_og_jobb_id(rigg):
@@ -76,7 +79,7 @@ def test_tom_saldo_gir_402_ikkje_500(rigg):
     assert r.status_code == 402
 
 
-def test_utan_brukar_id_gir_401(rigg):
+def test_utan_token_gir_401(rigg):
     c, _, _ = rigg()
     r = c.post("/video", json={"bilde_url": "https://d/b.jpg", "onske": "gå"})
     assert r.status_code == 401
@@ -86,13 +89,29 @@ def test_kan_ikkje_sjaa_andre_sine_jobbar(rigg):
     c, _, _ = rigg()
     jobb_id = c.post("/video", json={"bilde_url": "https://d/b.jpg",
                                      "onske": "gå"}, headers=H).json()["jobb_id"]
-    r = c.get(f"/video/{jobb_id}", headers={"X-Brukar-Id": "kari"})
+    r = c.get(f"/video/{jobb_id}", headers=H_KARI)
     assert r.status_code == 404, "Lak informasjon om andre sine jobbar"
 
 
-def test_kan_ikkje_sjaa_andre_sin_saldo(rigg):
+def test_saldo_kjem_frae_tokenet_ikkje_stien(rigg):
+    """Kari faar Kari sin saldo, ikkje Ola sin - uansett kva ho ber om."""
     c, _, _ = rigg()
-    assert c.get("/saldo/ola", headers={"X-Brukar-Id": "kari"}).status_code == 403
+    c.post("/video", json={"bilde_url": "https://d/b.jpg", "onske": "gå"},
+           headers=H)
+    assert c.get("/saldo", headers=H).json()["kredittar"] == 90
+    assert c.get("/saldo", headers=H_KARI).json()["kredittar"] == 0
+
+
+def test_tuklaa_token_gir_401(rigg):
+    c, _, _ = rigg()
+    falsk = lag_token("ola", "z" * 40)
+    r = c.get("/saldo", headers={"Authorization": "Bearer " + falsk})
+    assert r.status_code == 401
+
+
+def test_utan_bearer_gir_401(rigg):
+    c, _, _ = rigg()
+    assert c.get("/saldo", headers={"Authorization": "ola"}).status_code == 401
 
 
 def test_ukjent_nivaa_gir_400(rigg):

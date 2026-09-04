@@ -215,9 +215,37 @@ Statuskodane er ikkje kosmetikk — appen brukar dei til å velje skjerm:
 Svarar han nei, har du ein bug som lagar eller øydelegg kredittar, og
 det er ein alarm — ikkje ei logglinje.
 
-> **Autentisering manglar.** Brukar-id kjem frå ein header som kven som
-> helst kan setje. Bytt til eit signert token før lansering, elles kan
-> kven som helst bruke andre sine kredittar.
+### `app/auth.py` — signerte token
+
+Brukar-id kjem frå eit HMAC-signert token, ikkje frå ein header
+klienten kan finne på sjølv.
+
+Vi lagar tokena med standardbiblioteket i staden for eit JWT-bibliotek.
+Ikkje fordi JWT er dårleg, men fordi dei fleste JWT-hòla kjem frå
+fleksibiliteten i formatet — `alg: none`, algoritmeforveksling, valfrie
+felt som ikkje blir sjekka. Her finst det éin algoritme, og han er
+ikkje eit felt nokon kan setje.
+
+Tre reglar koden held:
+
+1. **Konstant tid.** `hmac.compare_digest`, aldri `==`. Ei vanleg
+   samanlikning lek kor mange teikn som stemte.
+2. **Token går ut.** Eit token utan utløp er eit passord du ikkje kan
+   trekkje tilbake.
+3. **Ingen standardnøkkel.** Appen nektar å starte utan
+   `VIDEOAPP_TOKEN_NOKKEL` på minst 32 teikn. Ein innebygd nøkkel
+   hamnar i produksjon før eller seinare.
+
+Alle avvisingar gir same svar. Skil du mellom «utgått» og «feil
+signatur», fortel du ein angripar kva han skal justere.
+
+`/saldo` tek ingen brukar-id i stien — tokenet seier kven du er. Tek du
+id-en frå stien, må du hugse å sjekke han mot tokenet kvar gong. Tek du
+han frå tokenet, kan du ikkje gløyme det.
+
+```bash
+export VIDEOAPP_TOKEN_NOKKEL=$(python3 -c "import secrets; print(secrets.token_urlsafe(48))")
+```
 
 ### `okonomi.py` — før du endrar ein pris
 
