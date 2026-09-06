@@ -23,9 +23,17 @@ from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
 
 from .auth import AuthFeil, les_token
+from .kjop import KjopFeil
 from .jobb import AVVIST, FOR_LITE, USIKKER
 
 log = logging.getLogger(__name__)
+
+
+class Kvittering(BaseModel):
+    # Den signerte transaksjonen frå StoreKit 2. Vi stolar ikkje på noko
+    # anna klienten seier om kjøpet - produkt og tal kredittar kjem frå
+    # den verifiserte kvitteringa, aldri frå appen.
+    jws: str = Field(min_length=1, max_length=20000)
 
 
 class Tinging(BaseModel):
@@ -35,7 +43,8 @@ class Tinging(BaseModel):
     idem: str | None = Field(default=None, max_length=200)
 
 
-def lag_app(bestilling, ko, ledger, prisbok, token_nokkel=None):
+def lag_app(bestilling, ko, ledger, prisbok, token_nokkel=None,
+            kjopssjekk=None):
     app = FastAPI(title="videoapp")
 
     def _brukar(authorization: str = Header(default="")):
@@ -102,6 +111,24 @@ def lag_app(bestilling, ko, ledger, prisbok, token_nokkel=None):
         """
         return {"kredittar": ledger.saldo(brukar),
                 "reservert": ledger.reservert(brukar)}
+
+    @app.post("/kjop")
+    def kjop(kv: Kvittering, brukar: str = Depends(_brukar)):
+        """Løys inn eit Apple-kjøp.
+
+        Same kvittering to gonger gir kredittar éin gong - ledgeren
+        dedupliserer på Apple sin transaksjons-id.
+        """
+        if kjopssjekk is None:
+            raise HTTPException(503, "Kjøp er ikkje sett opp")
+        try:
+            k = kjopssjekk.losn_inn(ledger, brukar, kv.jws)
+        except KjopFeil as e:
+            # 400, ikkje 500: kvitteringa er ikkje god nok, og appen
+            # skal ikkje prøve om att med same kvittering.
+            raise HTTPException(400, str(e)) from None
+        return {"kredittar": ledger.saldo(brukar),
+                "lagt_til": k.kredittar, "produkt": k.produkt_id}
 
     @app.get("/helse")
     def helse():

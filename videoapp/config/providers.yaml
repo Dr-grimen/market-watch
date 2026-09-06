@@ -155,3 +155,28 @@ verving:
   # den nye brukaren faktisk har laga ein video, betaler du for ekte
   # folk. Det er skilnaden mellom ein vekstkanal og eit pengesluk.
   belon_ved: foerste_video
+
+kjop:
+  # Maa vere NOEYAKTIG bundle-id-en til appen din. Sjekken mot denne er
+  # det som hindrar at nokon sender deg ei ekte, signert Apple-kvittering
+  # frae ein HEILT ANNAN app og faar kredittar hos deg. Kvitteringa er
+  # aegte; ho er berre ikkje di.
+  bundle_id: "no.sondre.videoapp"
+
+  # Produkt-id-ar frae App Store Connect -> kor mange kredittar dei gir.
+  # Eit produkt som ikkje staar her blir avvist. Kjoeper nokon noko vi
+  # ikkje kjenner, er det ein feil - ikkje noko vi skal gjette paa.
+  produkt:
+    no.sondre.videoapp.kredittar250: 250
+    no.sondre.videoapp.kredittar600: 600
+    no.sondre.videoapp.abonnement: 250
+
+  # Apple sitt rot-sertifikat, DER- eller PEM-fil. Utan denne kan vi
+  # ikkje stadfeste at kvitteringa faktisk kjem frae Apple, og da skal
+  # vi ikkje gi kredittar i det heile.
+  # Last ned frae https://www.apple.com/certificateauthority/
+  apple_rot_sertifikat: "config/AppleRootCA-G3.cer"
+
+  # Godta sandkasse-kvitteringar? Paa i utvikling, AV i produksjon -
+  # sandkassekvitteringar er gratis aa lage.
+  godta_sandkasse: true

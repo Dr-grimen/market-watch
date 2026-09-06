@@ -147,3 +147,15 @@ def test_moderator_nede_gir_503_ikkje_422(rigg):
                headers=H)
     assert r.status_code == 503
     assert "Prøv igjen" in r.json()["detail"]
+
+
+def test_kjop_utan_oppsett_gir_503(rigg):
+    """Manglar Apple-sertifikatet, kan ingen kjoepe - men appen lever."""
+    c, _, _ = rigg()
+    r = c.post("/kjop", json={"jws": "a.b.c"}, headers=H)
+    assert r.status_code == 503
+
+
+def test_kjop_krev_token(rigg):
+    c, _, _ = rigg()
+    assert c.post("/kjop", json={"jws": "a.b.c"}).status_code == 401

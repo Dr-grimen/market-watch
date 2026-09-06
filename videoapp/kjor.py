@@ -27,6 +27,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from app.api import lag_app
 from app.arbeidar import Arbeidar, Bestilling
 from app.deling import Deling
+from app.kjop import Kjopssjekk
 from app.ko import Ko
 from app.ledger import Ledger
 from app.moderering import Moderering
@@ -86,7 +87,13 @@ def bygg(oppsett, prisbok):
 
     ruter = Ruter(prisbok, adaptere)
     bestilling = Bestilling(ko, ledger, prisbok, moderering)
-    return ledger, ko, deling, ruter, bestilling
+
+    kjopssjekk = Kjopssjekk(prisbok)
+    if not kjopssjekk.klar():
+        log.error("Kjoep er IKKJE i drift - Apple-rotsertifikatet manglar. "
+                  "Appen koeyrer, men ingen kan kjoepe kredittar.")
+
+    return ledger, ko, deling, ruter, bestilling, kjopssjekk
 
 
 def arbeidarsloyfe(arbeidar, ledger, stopp, kvil=2.0):
@@ -141,7 +148,7 @@ def main():
     for aatvaring in oppsett.manglar(prisbok):
         log.warning(aatvaring.replace("ÅTVARING: ", ""))
 
-    ledger, ko, deling, ruter, bestilling = bygg(oppsett, prisbok)
+    ledger, ko, deling, ruter, bestilling, kjopssjekk = bygg(oppsett, prisbok)
 
     if not ruter.adaptere:
         print("\nIngen leverandør har både nøkkel og adapter. "
@@ -173,7 +180,8 @@ def main():
 
     import uvicorn
     app = lag_app(bestilling, ko, ledger, prisbok,
-                  token_nokkel=oppsett.token_nokkel)
+                  token_nokkel=oppsett.token_nokkel,
+                  kjopssjekk=kjopssjekk)
     log.info("API på http://%s:%s", args.vert, args.port)
     try:
         uvicorn.run(app, host=args.vert, port=args.port, log_level="warning")
