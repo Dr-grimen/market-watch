@@ -32,7 +32,7 @@ MARKNADER=(
   "thedotmack|thedotmack/claude-mem"
   "ui-ux-pro-max-skill|nextlevelbuilder/ui-ux-pro-max-skill"
   "taste|obakeng-develops/taste"
-  "claude-watch|devinilabs/claude-watch"
+  "claude-video|bradautomates/claude-video"
 )
 
 echo "Marknader:"
@@ -56,7 +56,7 @@ PLUGINS=(
   "claude-mem@thedotmack"                       # minne på tvers av økter
   "ui-ux-pro-max@ui-ux-pro-max-skill"           # UI/UX-database
   "taste@taste"                                 # /taste, /taste-audit, /taste-learn
-  "claude-watch@claude-watch"                   # video -> notat
+  "watch@claude-video"                          # "Claude watch": video -> bilete + transkripsjon
 )
 if (( EKSTRA )); then
   PLUGINS+=(

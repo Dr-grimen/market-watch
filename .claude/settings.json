@@ -5,7 +5,7 @@
     "thedotmack":              { "source": { "source": "github", "repo": "thedotmack/claude-mem" } },
     "ui-ux-pro-max-skill":     { "source": { "source": "github", "repo": "nextlevelbuilder/ui-ux-pro-max-skill" } },
     "taste":                   { "source": { "source": "github", "repo": "obakeng-develops/taste" } },
-    "claude-watch":            { "source": { "source": "github", "repo": "devinilabs/claude-watch" } }
+    "claude-video":            { "source": { "source": "github", "repo": "bradautomates/claude-video" } }
   },
   "enabledPlugins": {
     "claude-code-setup@claude-plugins-official": true,
@@ -14,6 +14,6 @@
     "claude-mem@thedotmack": true,
     "ui-ux-pro-max@ui-ux-pro-max-skill": true,
     "taste@taste": true,
-    "claude-watch@claude-watch": true
+    "watch@claude-video": true
   }
 }
