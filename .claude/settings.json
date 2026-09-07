@@ -1,0 +1,19 @@
+{
+  "extraKnownMarketplaces": {
+    "claude-plugins-official": { "source": { "source": "github", "repo": "anthropics/claude-plugins-official" } },
+    "impeccable":              { "source": { "source": "github", "repo": "pbakaus/impeccable" } },
+    "thedotmack":              { "source": { "source": "github", "repo": "thedotmack/claude-mem" } },
+    "ui-ux-pro-max-skill":     { "source": { "source": "github", "repo": "nextlevelbuilder/ui-ux-pro-max-skill" } },
+    "taste":                   { "source": { "source": "github", "repo": "obakeng-develops/taste" } },
+    "claude-watch":            { "source": { "source": "github", "repo": "devinilabs/claude-watch" } }
+  },
+  "enabledPlugins": {
+    "claude-code-setup@claude-plugins-official": true,
+    "playwright@claude-plugins-official": true,
+    "impeccable@impeccable": true,
+    "claude-mem@thedotmack": true,
+    "ui-ux-pro-max@ui-ux-pro-max-skill": true,
+    "taste@taste": true,
+    "claude-watch@claude-watch": true
+  }
+}
